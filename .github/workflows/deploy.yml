@@ -1,0 +1,82 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+# The migrate job always runs before deploy.
+# If migrations fail, the deploy job is skipped entirely — this ensures
+# the database schema is always up to date before new application code
+# goes live, eliminating the window where code references columns that
+# don't exist yet (or no longer exist).
+jobs:
+  migrate:
+    name: Run database migrations
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install server dependencies
+        run: pnpm --filter server install --frozen-lockfile
+
+      # Authenticate with GCP so the Cloud SQL Auth Proxy can reach the database
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      # The Cloud SQL Auth Proxy opens a secure tunnel to Cloud SQL.
+      # DATABASE_URL uses a Unix socket path that the proxy exposes locally.
+      - name: Install Cloud SQL Auth Proxy
+        run: |
+          curl -fsSL -o cloud-sql-proxy \
+            https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.11.4/cloud-sql-proxy.linux.amd64
+          chmod +x cloud-sql-proxy
+
+      - name: Start Cloud SQL Auth Proxy
+        run: |
+          ./cloud-sql-proxy \
+            --unix-socket /tmp/cloudsql \
+            ${{ secrets.CLOUD_SQL_INSTANCE_CONNECTION_NAME }} &
+          sleep 3
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: pnpm --filter server migrate
+
+  deploy:
+    name: Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    # Only runs if the migrate job completed successfully.
+    # A failed migration blocks the deploy — no code ships with a broken schema.
+    needs: migrate
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      # Source deployment — Cloud Build builds the image, Cloud Run deploys it.
+      # No manual docker build or push required.
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: troupe-api
+          region: us-central1
+          source: .
+          dockerfile_path: packages/server/Dockerfile
+          project_id: ${{ secrets.GCP_PROJECT_ID }}

@@ -6,7 +6,7 @@ import authRouter from './routes/auth';
 import meRouter from './routes/me';
 
 const app = express();
-const PORT = process.env.PORT ?? 3001;
+const PORT = process.env.PORT ?? 8080;
 
 app.use(express.json());
 
