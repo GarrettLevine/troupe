@@ -220,6 +220,89 @@ Then update the `icons` array in `packages/client/vite.config.ts` to reference t
 
 ---
 
+## Deployment
+
+The app deploys to **Google Cloud Run** via GitHub Actions on every push to `main`. The workflow runs migrations first — if they fail, the deploy is skipped.
+
+### One-time GCP setup
+
+1. **Enable APIs** in the GCP Console:
+   - Cloud Run API
+   - Cloud SQL Admin API
+   - Cloud Build API
+   - Secret Manager API
+
+2. **Create a service account** (e.g. `troupe-deployer`) with these roles:
+   - Cloud Run Admin
+   - Cloud SQL Client
+   - Secret Manager Secret Accessor
+   - Service Account User
+
+3. **Download the service account JSON key** — you'll add it as a GitHub secret.
+
+4. **Connect Cloud Run to the GitHub repo** in the GCP Console under Cloud Run → your service → Source. This enables source-based deployments via Cloud Build (no manual Docker build needed).
+
+### One-time GitHub setup
+
+Add these repository secrets under **Settings → Secrets and variables → Actions**:
+
+| Secret | Where to find it |
+|--------|-----------------|
+| `GCP_SA_KEY` | The full JSON content of the downloaded service account key |
+| `GCP_PROJECT_ID` | GCP Console → project selector (e.g. `troupe-prod-123`) |
+| `DATABASE_URL` | Cloud SQL connection string via Auth Proxy Unix socket, e.g. `postgresql://user:pass@/troupe?host=/tmp/cloudsql/project:region:instance` |
+| `CLOUD_SQL_INSTANCE_CONNECTION_NAME` | Cloud SQL Console → instance details → Connection name (e.g. `project:us-central1:troupe-db`) |
+
+### How the pipeline works
+
+```
+push to main
+    │
+    ▼
+[migrate job]
+  - Installs server deps
+  - Starts Cloud SQL Auth Proxy (secure tunnel to Cloud SQL)
+  - Runs pnpm migrate (applies pending SQL migrations)
+    │
+    ├── FAIL → pipeline stops, deploy is skipped
+    │
+    ▼
+[deploy job]
+  - Deploys to Cloud Run via source deployment (Cloud Build builds the image)
+```
+
+A failed migration **always blocks the deploy**. This prevents the window where live code references a column that doesn't exist yet.
+
+To manually roll back a migration after a bad deploy:
+
+```bash
+# Locally, pointing at the production database via the Cloud SQL Auth Proxy
+pnpm migrate:down
+```
+
+### Multi-phase migration strategy for breaking changes
+
+Never rename or drop a column in a single migration — deployed code will reference the old column name while the migration runs, causing errors. Always split breaking changes across three PRs:
+
+**PR 1 — Add:** add the new column alongside the old one
+```sql
+ALTER TABLE users ADD COLUMN new_col TEXT;
+```
+
+**PR 2 — Migrate:** update all application code to use the new column; backfill existing rows
+```sql
+UPDATE users SET new_col = old_col WHERE new_col IS NULL;
+```
+
+**PR 3 — Cleanup:** once PR 2 is stable in production, drop the old column
+```sql
+ALTER TABLE users DROP COLUMN old_col;
+```
+
+This eliminates the risk window where live code references a column that no longer exists.
+
+---
+
 ## Auth Architecture
 
 - **Phone number is never stored** in the database. Firebase is the sole source of truth.

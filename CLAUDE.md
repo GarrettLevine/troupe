@@ -74,6 +74,17 @@ A PWA for performing arts groups to manage membership, scheduling, and shows.
 - Test installability on mobile before marking any UI task complete
 - Don't break the service worker — test offline behaviour after significant changes
 
+### Deployment
+- CI/CD: GitHub Actions → Cloud Run via source deployment (Cloud Build builds the image)
+- Two jobs: `migrate` (runs first) → `deploy` (only runs if migrate succeeds)
+- Never merge to main with a migration you cannot roll back cleanly
+- Breaking schema changes (rename/drop) always use the three-phase approach:
+  - PR 1: add new column
+  - PR 2: update code + backfill data
+  - PR 3: drop old column
+- Secrets live in GitHub repository secrets — never in code or committed `.env` files
+- To manually roll back a migration: `pnpm migrate:down` (run locally against prod via Cloud SQL Auth Proxy)
+
 ### Phase boundaries
 - Phase 1: auth + home page only
 - Phase 2: troupe creation + invite codes
