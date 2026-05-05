@@ -4,6 +4,8 @@
   "scripts": {
     "dev": "concurrently \"pnpm --filter server dev\" \"pnpm --filter client dev\"",
     "build": "pnpm --filter client build && pnpm --filter server build",
+    "migrate": "pnpm --filter server migrate",
+    "migrate:down": "pnpm --filter server migrate:down",
     "lint": "eslint \"packages/*/src/**/*.{ts,tsx}\"",
     "format": "prettier --write \"packages/*/src/**/*.{ts,tsx}\""
   },

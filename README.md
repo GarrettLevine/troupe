@@ -39,9 +39,21 @@ pnpm install
 cp packages/server/.env.example packages/server/.env
 ```
 
+**Database** — use individual variables for local dev, or `DATABASE_URL` for hosted environments (Railway, Heroku, etc.). `DATABASE_URL` takes precedence if both are set.
+
 | Variable | Description |
 |----------|-------------|
-| `DATABASE_URL` | PostgreSQL connection string, e.g. `postgresql://user:pass@localhost:5432/troupe` |
+| `DB_HOST` | Database host (default: `localhost`) |
+| `DB_PORT` | Database port (default: `5432`) |
+| `DB_NAME` | Database name (e.g. `troupe`) |
+| `DB_USER` | Database user |
+| `DB_PASSWORD` | Database password |
+| `DATABASE_URL` | Full connection string — overrides the individual `DB_*` vars if set |
+
+**Firebase & server:**
+
+| Variable | Description |
+|----------|-------------|
 | `FIREBASE_PROJECT_ID` | Your Firebase project ID |
 | `FIREBASE_CLIENT_EMAIL` | Service account email from the Admin SDK credentials JSON |
 | `FIREBASE_PRIVATE_KEY` | Private key from the service account JSON (newlines as `\n`, wrapped in quotes) |
@@ -61,12 +73,14 @@ cp packages/client/.env.example packages/client/.env
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender ID |
 | `VITE_FIREBASE_APP_ID` | Firebase app ID |
 
-### 3. Create the database
+### 3. Create the database and run migrations
 
 ```bash
 createdb troupe
-psql troupe -f db/migrations/001_initial.sql
+pnpm migrate
 ```
+
+This applies all pending migrations from `packages/server/db/migrations/` using node-pg-migrate.
 
 ### 4. Firebase setup
 
@@ -145,9 +159,6 @@ With the emulator running, use any phone number — Firebase accepts OTP code `1
 
 ```
 troupe/
-├── db/
-│   └── migrations/
-│       └── 001_initial.sql       # users table
 ├── packages/
 │   ├── client/                   # React PWA (Vite)
 │   │   ├── public/icons/         # App icons (SVG placeholder)
@@ -157,8 +168,9 @@ troupe/
 │   │       ├── components/       # ProtectedRoute
 │   │       └── pages/            # Login, Home
 │   └── server/                   # Express API
+│       ├── db/migrations/        # node-pg-migrate SQL files
 │       └── src/
-│           ├── db.ts             # pg Pool
+│           ├── db.ts             # pg Pool + query<T> helper
 │           ├── firebase.ts       # Firebase Admin init
 │           ├── types.ts          # DbUser + Express augmentation
 │           ├── middleware/       # requireAuth
@@ -168,6 +180,32 @@ troupe/
 ├── package.json                  # root scripts + shared devDeps
 └── pnpm-workspace.yaml
 ```
+
+---
+
+## Database Migrations
+
+Migrations are managed with [node-pg-migrate](https://github.com/salsita/node-pg-migrate) and live in `packages/server/db/migrations/`. All migration files are plain SQL.
+
+| Script | What it does |
+|--------|-------------|
+| `pnpm migrate` | Apply all pending migrations |
+| `pnpm migrate:down` | Roll back the most recent migration |
+| `pnpm --filter server migrate:create <name>` | Scaffold a new numbered migration file |
+
+Migration files use `-- Up Migration` / `-- Down Migration` section headers:
+
+```sql
+-- Up Migration
+CREATE TABLE example (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+);
+
+-- Down Migration
+DROP TABLE IF EXISTS example;
+```
+
+node-pg-migrate tracks applied migrations in a `pgmigrations` table it creates automatically. `DATABASE_URL` is read from `packages/server/.env`.
 
 ---
 

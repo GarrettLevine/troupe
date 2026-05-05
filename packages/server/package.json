@@ -5,12 +5,16 @@
   "scripts": {
     "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "migrate": "node-pg-migrate up -m db/migrations --dotenv-config-path .env",
+    "migrate:down": "node-pg-migrate down -m db/migrations --dotenv-config-path .env",
+    "migrate:create": "node-pg-migrate create -m db/migrations"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "firebase-admin": "^12.0.0",
+    "node-pg-migrate": "^7.7.0",
     "pg": "^8.11.5"
   },
   "devDependencies": {

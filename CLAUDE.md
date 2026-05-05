@@ -32,11 +32,16 @@ A PWA for performing arts groups to manage membership, scheduling, and shows.
 
 ### Database
 - No ORM — raw SQL only using the pg driver
-- All migrations live in db/migrations/ and are numbered sequentially (001_, 002_)
+- Migrations are managed with **node-pg-migrate** (installed in `packages/server`)
+- All migrations live in `packages/server/db/migrations/` and are numbered sequentially (001_, 002_, …)
+- Migration files are always **raw SQL** — never JavaScript; use `-- Up Migration` / `-- Down Migration` section headers
+- Run migrations: `pnpm --filter server migrate` (applies pending) / `pnpm --filter server migrate:down` (rolls back one)
+- Create a new migration: `pnpm --filter server migrate:create <name>`
 - Never mutate the database outside of a migration file
 - Always use UUIDs (gen_random_uuid()) for primary keys
 - All tables need created_at and updated_at timestamptz columns
 - updated_at must be kept current via a trigger, not application code
+- Use the `query<T>` helper from `src/db.ts` for all queries — never call `pool.query` directly in route/middleware files
 
 ### API / Backend
 - All routes are prefixed with /api
