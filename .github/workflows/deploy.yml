@@ -49,7 +49,7 @@ jobs:
           ./cloud-sql-proxy \
             --unix-socket /tmp/cloudsql \
             ${{ secrets.CLOUD_SQL_INSTANCE_CONNECTION_NAME }} &
-          until [ -S "/tmp/cloudsql/${{ secrets.CLOUD_SQL_INSTANCE_CONNECTION_NAME }}" ]; do sleep 1; done
+          until [ -S "/tmp/cloudsql/${{ secrets.CLOUD_SQL_INSTANCE_CONNECTION_NAME }}/.s.PGSQL.5432" ]; do sleep 1; done
 
       - name: Run migrations
         env:
