@@ -79,5 +79,4 @@ jobs:
           service: troupe-api
           region: us-central1
           source: .
-          dockerfile_path: packages/server/Dockerfile
           project_id: ${{ secrets.GCP_PROJECT_ID }}

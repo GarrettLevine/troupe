@@ -1,6 +1,3 @@
-# Build context must be the monorepo root:
-#   docker build -t troupe-api -f packages/server/Dockerfile .
-
 # ── Stage 1: builder ─────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
