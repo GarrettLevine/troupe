@@ -79,15 +79,17 @@ export function Home() {
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
               Your Troupes ({troupes.length}/{MAX_TROUPES_PER_USER})
             </h3>
-            {atLimit ? (
-              <span className="text-xs text-gray-400 font-medium">Troupe limit reached</span>
-            ) : (
-              <button
-                onClick={() => setModalOpen(true)}
-                className="text-xs font-medium text-violet-600 hover:text-violet-700 transition-colors"
-              >
-                + Create a Troupe
-              </button>
+            {troupes.length > 0 && (
+              atLimit ? (
+                <span className="text-xs text-gray-400 font-medium">Troupe limit reached</span>
+              ) : (
+                <button
+                  onClick={() => setModalOpen(true)}
+                  className="text-xs font-medium text-violet-600 hover:text-violet-700 transition-colors"
+                >
+                  + Create a Troupe
+                </button>
+              )
             )}
           </div>
 
@@ -145,16 +147,7 @@ export function Home() {
           )}
         </section>
 
-        {!loading && troupes.length > 0 && !atLimit && (
-          <div className="mt-4">
-            <button
-              onClick={() => setModalOpen(true)}
-              className="w-full bg-violet-600 text-white rounded-xl py-3 text-sm font-medium hover:bg-violet-700 transition-colors"
-            >
-              + Create a Troupe
-            </button>
-          </div>
-        )}
+
       </main>
 
       <CreateTroupeModal
