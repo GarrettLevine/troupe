@@ -9,8 +9,10 @@ A PWA for performing arts groups to manage membership, scheduling, and shows.
 - Auth: Firebase Authentication (phone/SMS)
 - Monorepo: pnpm workspaces
 
-## What's NOT built yet
-- Troupe creation
+## Completed Phases
+- Phase 1: auth + home page
+
+## What's NOT built yet (Phase 2 in progress)
 - Invite code system
 - Polls / scheduling
 - Shows
@@ -85,9 +87,22 @@ A PWA for performing arts groups to manage membership, scheduling, and shows.
 - Secrets live in GitHub repository secrets — never in code or committed `.env` files
 - To manually roll back a migration: `pnpm migrate:down` (run locally against prod via Cloud SQL Auth Proxy)
 
+### Troupe roles
+- `TroupeRole` = `'owner' | 'organizer' | 'member'`
+- owner: created the troupe, full control
+- organizer: elevated permissions (future)
+- member: standard membership
+- All troupe mutations (create, join, leave) must use a database transaction
+
+### Business Logic Limits
+- All limit constants live in `packages/server/src/config/limits.ts`
+- Never hardcode limit values in route handlers or components
+- Limits are enforced in the API layer only — not at the database level
+- This allows limits to evolve per user tier in future without migrations
+
 ### Phase boundaries
-- Phase 1: auth + home page only
-- Phase 2: troupe creation + invite codes
+- Phase 1 (complete): auth + home page
+- Phase 2 (current): troupe creation + invite codes
 - Phase 3: polls + scheduling
 - Phase 4: shows
 - Do not build ahead of the current phase without being asked

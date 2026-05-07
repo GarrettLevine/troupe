@@ -25,3 +25,29 @@ export async function query<T>(text: string, params?: unknown[]): Promise<T[]> {
     throw new Error('A database error occurred');
   }
 }
+
+interface TransactionClient {
+  query<T>(text: string, params?: unknown[]): Promise<T[]>;
+}
+
+export async function withTransaction<T>(fn: (client: TransactionClient) => Promise<T>): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const txClient: TransactionClient = {
+      query: async <R>(text: string, params?: unknown[]): Promise<R[]> => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await client.query(text, params as any[]);
+        return result.rows as R[];
+      },
+    };
+    const result = await fn(txClient);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
