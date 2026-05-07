@@ -80,6 +80,12 @@ jobs:
           region: us-central1
           source: .
           project_id: ${{ secrets.GCP_PROJECT_ID }}
+          env_vars: |
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
+            FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}
+            FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}
+          flags: --add-cloudsql-instances=${{ secrets.CLOUD_SQL_INSTANCE_CONNECTION_NAME }}
 
   deploy-hosting:
     name: Deploy to Firebase Hosting
