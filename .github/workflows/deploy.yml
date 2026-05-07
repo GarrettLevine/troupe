@@ -81,7 +81,6 @@ jobs:
           source: .
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           env_vars: |
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
             FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
             FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}
             FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}
