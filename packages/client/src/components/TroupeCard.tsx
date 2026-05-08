@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { TroupeSummary } from '../hooks/useTroupes';
 
 const roleStyles: Record<TroupeSummary['role'], string> = {
@@ -11,6 +12,8 @@ interface TroupeCardProps {
 }
 
 export function TroupeCard({ troupe }: TroupeCardProps) {
+  const navigate = useNavigate();
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
@@ -25,8 +28,8 @@ export function TroupeCard({ troupe }: TroupeCardProps) {
         {troupe.memberCount} {troupe.memberCount === 1 ? 'member' : 'members'}
       </p>
       <button
-        disabled
-        className="w-full border border-gray-200 rounded-lg py-2 text-xs font-medium text-gray-400 cursor-not-allowed"
+        onClick={() => navigate(`/troupes/${troupe.id}`)}
+        className="w-full border border-gray-200 rounded-lg py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
       >
         View Troupe
       </button>

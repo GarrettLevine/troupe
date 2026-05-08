@@ -5,6 +5,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import authRouter from './routes/auth';
 import meRouter from './routes/me';
 import troupesRouter from './routes/troupes';
+import eventsRouter from './routes/events';
 
 const app = express();
 const PORT = process.env.PORT ?? 8080;
@@ -14,6 +15,7 @@ app.use(express.json());
 app.use('/api/auth', authRouter);
 app.use('/api/me', meRouter);
 app.use('/api/troupes', troupesRouter);
+app.use('/api/troupes', eventsRouter);
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

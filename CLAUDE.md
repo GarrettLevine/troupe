@@ -12,7 +12,7 @@ A PWA for performing arts groups to manage membership, scheduling, and shows.
 ## Completed Phases
 - Phase 1: auth + home page
 
-## What's NOT built yet (Phase 2 in progress)
+## What's NOT built yet (Phase 3 in progress)
 - Invite code system
 - Polls / scheduling
 - Shows
@@ -100,9 +100,27 @@ A PWA for performing arts groups to manage membership, scheduling, and shows.
 - Limits are enforced in the API layer only — not at the database level
 - This allows limits to evolve per user tier in future without migrations
 
+### Dates & Times
+- All timestamps stored as timestamptz in UTC
+- Events use a single event_at (timestamptz) column — never split date and time
+- Frontend converts datetime-local input to UTC ISO string before sending to API
+- Frontend displays times in the user's local timezone using Intl.DateTimeFormat
+- Never store or send local times to the API
+
+### Pagination
+- All list endpoints use cursor-based pagination, not offset
+- Default and maximum page size is 10
+- Cursors are base64 encoded strings containing event_at + id
+- Responses always include a nextCursor field (null if no more pages)
+
+### Event permissions
+- Only owners and organizers can create events
+- Permission is checked in the API layer by reading the user's role from troupe_members — never trust the client
+
 ### Phase boundaries
 - Phase 1 (complete): auth + home page
-- Phase 2 (current): troupe creation + invite codes
-- Phase 3: polls + scheduling
-- Phase 4: shows
+- Phase 2 (complete): troupe creation
+- Phase 3 (current): troupe detail page + events
+- Phase 4: polls + scheduling
+- Phase 5: shows
 - Do not build ahead of the current phase without being asked
