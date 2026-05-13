@@ -106,4 +106,68 @@ router.post('/', async (req, res) => {
   }
 });
 
+router.get('/:troupeId', async (req, res) => {
+  try {
+    const { troupeId } = req.params;
+    const userId = req.user!.id;
+
+    interface DetailRow {
+      id: string;
+      name: string;
+      created_at: Date;
+      member_count: string;
+      members: { userId: string; displayName: string; role: TroupeRole }[];
+      current_user_role: TroupeRole | null;
+    }
+
+    const rows = await query<DetailRow>(
+      `WITH me AS (
+         SELECT role FROM troupe_members WHERE troupe_id = $1 AND user_id = $2
+       )
+       SELECT
+         t.id,
+         t.name,
+         t.created_at,
+         COUNT(tm.id) AS member_count,
+         JSON_AGG(
+           JSON_BUILD_OBJECT(
+             'userId', tm.user_id,
+             'displayName', COALESCE(u.display_name, 'Unknown'),
+             'role', tm.role
+           ) ORDER BY tm.joined_at ASC
+         ) AS members,
+         (SELECT role FROM me) AS current_user_role
+       FROM troupes t
+       JOIN troupe_members tm ON tm.troupe_id = t.id
+       JOIN users u ON u.id = tm.user_id
+       WHERE t.id = $1
+       GROUP BY t.id, t.name, t.created_at`,
+      [troupeId, userId],
+    );
+
+    if (rows.length === 0) {
+      res.status(404).json({ error: { message: 'Troupe not found' } });
+      return;
+    }
+
+    const row = rows[0];
+
+    if (!row.current_user_role) {
+      res.status(403).json({ error: { message: 'You are not a member of this troupe' } });
+      return;
+    }
+
+    res.json({
+      id: row.id,
+      name: row.name,
+      createdAt: row.created_at.toISOString(),
+      memberCount: parseInt(row.member_count, 10),
+      members: row.members,
+      currentUserRole: row.current_user_role,
+    });
+  } catch {
+    res.status(500).json({ error: { message: 'Internal server error' } });
+  }
+});
+
 export default router;
