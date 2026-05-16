@@ -11,14 +11,18 @@
     "migrate:create": "node-pg-migrate create -m db/migrations"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1045.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "firebase-admin": "^12.0.0",
+    "multer": "^2.1.1",
     "node-pg-migrate": "^7.7.0",
-    "pg": "^8.11.5"
+    "pg": "^8.11.5",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
+    "@types/multer": "^2.1.0",
     "@types/node": "^20.12.0",
     "@types/pg": "^8.11.5",
     "nodemon": "^3.1.0",

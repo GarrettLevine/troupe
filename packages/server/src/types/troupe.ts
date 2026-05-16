@@ -1,12 +1,21 @@
 export type TroupeRole = 'owner' | 'organizer' | 'member';
 export type EventType = 'show' | 'rehearsal';
 
+export interface TroupeBadges {
+  thumbnail: string;
+  standard: string;
+  large: string;
+}
+
 export interface TroupeSummary {
   id: string;
   name: string;
   role: TroupeRole;
   memberCount: number;
   createdAt: string;
+  updatedAt: string;
+  hasBadge: boolean;
+  badges: TroupeBadges | null;
 }
 
 export interface TroupeMember {
@@ -19,7 +28,9 @@ export interface TroupeDetail {
   id: string;
   name: string;
   createdAt: string;
+  updatedAt: string;
   memberCount: number;
+  hasBadge: boolean;
   members: TroupeMember[];
   currentUserRole: TroupeRole;
 }

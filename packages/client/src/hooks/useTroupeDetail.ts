@@ -11,7 +11,9 @@ export interface TroupeDetail {
   id: string;
   name: string;
   createdAt: string;
+  updatedAt: string;
   memberCount: number;
+  hasBadge: boolean;
   members: TroupeMember[];
   currentUserRole: 'owner' | 'organizer' | 'member';
 }
@@ -46,5 +48,9 @@ export function useTroupeDetail() {
     [user],
   );
 
-  return { detail, loading, error, fetchTroupeDetail };
+  const updateDetail = useCallback((updates: Partial<TroupeDetail>) => {
+    setDetail((prev) => (prev ? { ...prev, ...updates } : null));
+  }, []);
+
+  return { detail, loading, error, fetchTroupeDetail, updateDetail };
 }

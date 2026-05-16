@@ -4,6 +4,8 @@ import { useTroupeDetail } from '../hooks/useTroupeDetail';
 import { useEvents } from '../hooks/useEvents';
 import { EventCard } from '../components/EventCard';
 import { AddEventModal } from '../components/AddEventModal';
+import { EditTroupeModal } from '../components/EditTroupeModal';
+import { TroupeBadge } from '../components/TroupeBadge';
 
 type TabType = 'upcoming' | 'past';
 
@@ -16,9 +18,11 @@ const roleStyles = {
 export function TroupeDetailPage() {
   const { troupeId } = useParams<{ troupeId: string }>();
   const navigate = useNavigate();
-  const { detail, loading: detailLoading, error: detailError, fetchTroupeDetail } = useTroupeDetail();
+  const { detail, loading: detailLoading, error: detailError, fetchTroupeDetail, updateDetail } =
+    useTroupeDetail();
   const [activeTab, setActiveTab] = useState<TabType>('upcoming');
-  const [modalOpen, setModalOpen] = useState(false);
+  const [addEventOpen, setAddEventOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const { events, loading: eventsLoading, error: eventsError, sentinelRef, createEvent, resetAndRefetch } =
     useEvents(troupeId!, activeTab);
 
@@ -54,6 +58,24 @@ export function TroupeDetailPage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6 flex flex-col gap-6">
+        {/* Troupe header */}
+        {!detailLoading && detail && (
+          <section className="flex items-center gap-4">
+            <TroupeBadge troupe={detail} size="large" />
+            <div className="flex flex-col gap-1 min-w-0">
+              <h1 className="text-xl font-bold text-gray-900 truncate">{detail.name}</h1>
+              {detail.currentUserRole === 'owner' && (
+                <button
+                  onClick={() => setEditOpen(true)}
+                  className="text-sm font-medium text-violet-600 hover:text-violet-700 transition-colors self-start"
+                >
+                  Edit Troupe
+                </button>
+              )}
+            </div>
+          </section>
+        )}
+
         {/* Members */}
         <section>
           {detailLoading ? (
@@ -111,7 +133,7 @@ export function TroupeDetailPage() {
             </div>
             {canCreateEvents && (
               <button
-                onClick={() => setModalOpen(true)}
+                onClick={() => setAddEventOpen(true)}
                 className="text-xs font-medium text-violet-600 hover:text-violet-700 transition-colors"
               >
                 + Add Event
@@ -137,9 +159,7 @@ export function TroupeDetailPage() {
             </div>
           ) : events.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-              <p className="text-sm text-gray-500">
-                No {activeTab} events
-              </p>
+              <p className="text-sm text-gray-500">No {activeTab} events</p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
@@ -161,10 +181,23 @@ export function TroupeDetailPage() {
 
       {canCreateEvents && (
         <AddEventModal
-          open={modalOpen}
-          onClose={() => setModalOpen(false)}
+          open={addEventOpen}
+          onClose={() => setAddEventOpen(false)}
           onCreated={handleEventCreated}
           onCreate={createEvent}
+        />
+      )}
+
+      {detail?.currentUserRole === 'owner' && (
+        <EditTroupeModal
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          troupeId={troupeId!}
+          currentName={detail.name}
+          hasBadge={detail.hasBadge}
+          updatedAt={detail.updatedAt}
+          onNameUpdated={(name, updatedAt) => updateDetail({ name, updatedAt })}
+          onBadgeUploaded={(updatedAt) => updateDetail({ hasBadge: true, updatedAt })}
         />
       )}
     </div>
