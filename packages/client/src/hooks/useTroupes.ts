@@ -18,8 +18,6 @@ export interface TroupeSummary {
   badges: TroupeBadges | null;
 }
 
-export const MAX_TROUPES_PER_USER = 5;
-
 export function useTroupes() {
   const { user } = useAuth();
   const [troupes, setTroupes] = useState<TroupeSummary[]>([]);

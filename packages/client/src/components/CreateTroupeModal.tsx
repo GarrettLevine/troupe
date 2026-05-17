@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { TroupeSummary } from '../hooks/useTroupes';
-
-const MAX_NAME_LENGTH = 100;
+import { MAX_TROUPE_NAME_LENGTH } from '../lib/constants';
 
 interface CreateTroupeModalProps {
   open: boolean;
@@ -51,7 +50,7 @@ export function CreateTroupeModal({ open, onClose, onCreated, onCreate }: Create
                 Troupe name
               </label>
               <span className="text-xs text-gray-400">
-                {name.length}/{MAX_NAME_LENGTH}
+                {name.length}/{MAX_TROUPE_NAME_LENGTH}
               </span>
             </div>
             <input
@@ -59,7 +58,7 @@ export function CreateTroupeModal({ open, onClose, onCreated, onCreate }: Create
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              maxLength={MAX_NAME_LENGTH}
+              maxLength={MAX_TROUPE_NAME_LENGTH}
               placeholder="e.g. The Improv Collective"
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               autoFocus

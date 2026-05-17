@@ -1,10 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { TroupeBadge } from './TroupeBadge';
-
-const MAX_NAME_LENGTH = 100;
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+import { MAX_TROUPE_NAME_LENGTH, BADGE_MAX_FILE_SIZE, BADGE_ACCEPTED_TYPES } from '../lib/constants';
 
 interface EditTroupeModalProps {
   open: boolean;
@@ -62,7 +59,7 @@ export function EditTroupeModal({
   if (!open) return null;
 
   const nameChanged = name.trim() !== currentName;
-  const nameValid = name.trim().length > 0 && name.trim().length <= MAX_NAME_LENGTH;
+  const nameValid = name.trim().length > 0 && name.trim().length <= MAX_TROUPE_NAME_LENGTH;
 
   const handleNameSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,11 +95,11 @@ export function EditTroupeModal({
     setFileError(null);
     setUploadSuccess(false);
 
-    if (!ACCEPTED_TYPES.includes(file.type)) {
+    if (!BADGE_ACCEPTED_TYPES.includes(file.type)) {
       setFileError('Only JPEG, PNG, and WebP images are accepted');
       return;
     }
-    if (file.size > MAX_FILE_SIZE) {
+    if (file.size > BADGE_MAX_FILE_SIZE) {
       setFileError('File must be 5MB or smaller');
       return;
     }
@@ -159,7 +156,7 @@ export function EditTroupeModal({
                   Name
                 </label>
                 <span className="text-xs text-gray-400">
-                  {name.length}/{MAX_NAME_LENGTH}
+                  {name.length}/{MAX_TROUPE_NAME_LENGTH}
                 </span>
               </div>
               <input
@@ -167,7 +164,7 @@ export function EditTroupeModal({
                 type="text"
                 value={name}
                 onChange={(e) => { setName(e.target.value); setNameSuccess(false); }}
-                maxLength={MAX_NAME_LENGTH}
+                maxLength={MAX_TROUPE_NAME_LENGTH}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               />
             </div>

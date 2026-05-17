@@ -1,13 +1,5 @@
 import { getBadgeUrls } from '../lib/badgeUrl';
-
-const BRAND_COLORS = [
-  'bg-violet-500',
-  'bg-blue-500',
-  'bg-emerald-500',
-  'bg-amber-500',
-  'bg-rose-500',
-  'bg-cyan-500',
-];
+import { BRAND_COLORS } from '../lib/constants';
 
 function hashColor(id: string): string {
   let hash = 0;

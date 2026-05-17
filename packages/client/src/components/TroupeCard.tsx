@@ -1,12 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { TroupeSummary } from '../hooks/useTroupes';
 import { TroupeBadge } from './TroupeBadge';
-
-const roleStyles: Record<TroupeSummary['role'], string> = {
-  owner: 'bg-violet-100 text-violet-700',
-  organizer: 'bg-blue-100 text-blue-700',
-  member: 'bg-gray-100 text-gray-600',
-};
+import { ROLE_STYLES } from '../lib/constants';
 
 interface TroupeCardProps {
   troupe: TroupeSummary;
@@ -26,7 +21,7 @@ export function TroupeCard({ troupe }: TroupeCardProps) {
         <div className="flex items-start justify-between gap-2">
           <h4 className="font-semibold text-gray-900 text-sm leading-snug truncate">{troupe.name}</h4>
           <span
-            className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${roleStyles[troupe.role]}`}
+            className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${ROLE_STYLES[troupe.role]}`}
           >
             {troupe.role}
           </span>

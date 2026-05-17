@@ -6,14 +6,9 @@ import { EventCard } from '../components/EventCard';
 import { AddEventModal } from '../components/AddEventModal';
 import { EditTroupeModal } from '../components/EditTroupeModal';
 import { TroupeBadge } from '../components/TroupeBadge';
+import { ROLE_STYLES } from '../lib/constants';
 
 type TabType = 'upcoming' | 'past';
-
-const roleStyles = {
-  owner: 'bg-violet-100 text-violet-700',
-  organizer: 'bg-blue-100 text-blue-700',
-  member: 'bg-gray-100 text-gray-600',
-};
 
 export function TroupeDetailPage() {
   const { troupeId } = useParams<{ troupeId: string }>();
@@ -102,7 +97,7 @@ export function TroupeDetailPage() {
                   >
                     <span className="text-sm text-gray-900">{m.displayName}</span>
                     <span
-                      className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${roleStyles[m.role]}`}
+                      className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${ROLE_STYLES[m.role]}`}
                     >
                       {m.role}
                     </span>

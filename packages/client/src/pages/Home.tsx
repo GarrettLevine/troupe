@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useTroupes, MAX_TROUPES_PER_USER } from '../hooks/useTroupes';
+import { useTroupes } from '../hooks/useTroupes';
+import { MAX_TROUPES_PER_USER } from '../lib/constants';
 import { TroupeCard } from '../components/TroupeCard';
 import { CreateTroupeModal } from '../components/CreateTroupeModal';
 

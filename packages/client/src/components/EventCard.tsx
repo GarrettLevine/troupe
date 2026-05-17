@@ -1,10 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { TroupeEvent } from '../hooks/useEvents';
-
-const eventTypeStyles = {
-  show: 'bg-amber-100 text-amber-700',
-  rehearsal: 'bg-teal-100 text-teal-700',
-};
+import { EVENT_TYPE_STYLES } from '../lib/constants';
 
 function formatEventDate(eventAt: string): string {
   return new Intl.DateTimeFormat('en-US', {
@@ -38,7 +34,7 @@ export function EventCard({ event }: EventCardProps) {
       <div className="flex items-start justify-between gap-2">
         <h4 className="font-semibold text-gray-900 text-sm leading-snug">{event.name}</h4>
         <span
-          className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${eventTypeStyles[event.eventType]}`}
+          className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${EVENT_TYPE_STYLES[event.eventType]}`}
         >
           {event.eventType === 'show' ? 'Show' : 'Rehearsal'}
         </span>
