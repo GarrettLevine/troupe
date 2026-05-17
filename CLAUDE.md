@@ -117,10 +117,23 @@ A PWA for performing arts groups to manage membership, scheduling, and shows.
 - Only owners and organizers can create events
 - Permission is checked in the API layer by reading the user's role from troupe_members — never trust the client
 
+### Media & Storage
+- All troupe badge images stored in Cloudflare R2 (bucket: troupe-badges)
+- Badge URLs are deterministic — never stored in the database
+- `has_badge` (boolean) on the troupes table is the only DB record needed
+- Three sizes generated server-side on upload: 64px (thumbnail), 128px (standard), 256px (large)
+- All variants are circular-cropped WebP using sharp
+- Cache-Control: public, max-age=31536000, immutable on all R2 uploads
+- Cache busting via `?v={updatedAt unix timestamp}` query param
+- Badge URL construction always goes through `getBadgeUrls()` helper — never construct URLs inline
+- Owner only: name editing and badge upload
+- `TroupeBadge` component is the single source of truth for badge rendering
+
 ### Phase boundaries
 - Phase 1 (complete): auth + home page
 - Phase 2 (complete): troupe creation
-- Phase 3 (current): troupe detail page + events
+- Phase 3 (complete): troupe detail page + events
+- Phase 3.5 (complete): troupe badge upload + name editing
 - Phase 4: polls + scheduling
 - Phase 5: shows
 - Do not build ahead of the current phase without being asked

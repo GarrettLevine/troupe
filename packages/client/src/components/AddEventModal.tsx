@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CreateEventData, TroupeEvent } from '../hooks/useEvents';
-
-const MAX_NAME = 150;
-const MAX_LOCATION = 200;
-const MAX_DETAILS = 1000;
+import { MAX_EVENT_NAME_LENGTH, MAX_EVENT_LOCATION_LENGTH, MAX_EVENT_DETAILS_LENGTH } from '../lib/constants';
 
 function getMinDatetime(): string {
   const now = new Date();
@@ -78,13 +75,13 @@ export function AddEventModal({ open, onClose, onCreated, onCreate }: AddEventMo
           <div>
             <div className="flex justify-between mb-1">
               <label className="text-sm font-medium text-gray-700">Event name</label>
-              <span className="text-xs text-gray-400">{name.length}/{MAX_NAME}</span>
+              <span className="text-xs text-gray-400">{name.length}/{MAX_EVENT_NAME_LENGTH}</span>
             </div>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              maxLength={MAX_NAME}
+              maxLength={MAX_EVENT_NAME_LENGTH}
               autoFocus
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             />
@@ -124,13 +121,13 @@ export function AddEventModal({ open, onClose, onCreated, onCreate }: AddEventMo
           <div>
             <div className="flex justify-between mb-1">
               <label className="text-sm font-medium text-gray-700">Location</label>
-              <span className="text-xs text-gray-400">{location.length}/{MAX_LOCATION}</span>
+              <span className="text-xs text-gray-400">{location.length}/{MAX_EVENT_LOCATION_LENGTH}</span>
             </div>
             <input
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              maxLength={MAX_LOCATION}
+              maxLength={MAX_EVENT_LOCATION_LENGTH}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             />
             {errors.location && <p className="text-xs text-red-600 mt-1">{errors.location}</p>}
@@ -141,12 +138,12 @@ export function AddEventModal({ open, onClose, onCreated, onCreate }: AddEventMo
               <label className="text-sm font-medium text-gray-700">
                 Details <span className="text-gray-400 font-normal">(optional)</span>
               </label>
-              <span className="text-xs text-gray-400">{details.length}/{MAX_DETAILS}</span>
+              <span className="text-xs text-gray-400">{details.length}/{MAX_EVENT_DETAILS_LENGTH}</span>
             </div>
             <textarea
               value={details}
               onChange={(e) => setDetails(e.target.value)}
-              maxLength={MAX_DETAILS}
+              maxLength={MAX_EVENT_DETAILS_LENGTH}
               rows={3}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
             />
