@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/icon.svg'],
       manifest: {
-        name: 'Troupe',
-        short_name: 'Troupe',
+        name: 'Troupes',
+        short_name: 'Troupes',
         description: 'Coordinate your performing arts group',
         theme_color: '#7c3aed',
         background_color: '#ffffff',

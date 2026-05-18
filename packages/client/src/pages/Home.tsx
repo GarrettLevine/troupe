@@ -39,7 +39,7 @@ export function Home() {
             <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center">
               <span className="text-white text-xs font-bold">T</span>
             </div>
-            <span className="font-semibold text-gray-900">Troupe</span>
+            <span className="font-semibold text-gray-900">Troupes</span>
           </div>
 
           <div className="relative">
