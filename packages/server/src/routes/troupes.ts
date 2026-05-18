@@ -96,7 +96,8 @@ router.get('/', async (req, res) => {
     }));
 
     res.json({ troupes });
-  } catch {
+  } catch (err) {
+    console.error('[GET /troupes]', err);
     res.status(500).json({ error: { message: 'Internal server error' } });
   }
 });
@@ -159,7 +160,8 @@ router.post('/', async (req, res) => {
     };
 
     res.status(201).json(response);
-  } catch {
+  } catch (err) {
+    console.error('[POST /troupes]', err);
     res.status(500).json({ error: { message: 'Internal server error' } });
   }
 });
@@ -229,7 +231,8 @@ router.get('/:troupeId', async (req, res) => {
       members: row.members,
       currentUserRole: row.current_user_role,
     });
-  } catch {
+  } catch (err) {
+    console.error('[GET /troupes/:troupeId]', err);
     res.status(500).json({ error: { message: 'Internal server error' } });
   }
 });
@@ -301,7 +304,8 @@ router.patch('/:troupeId', async (req, res) => {
     };
 
     res.json(response);
-  } catch {
+  } catch (err) {
+    console.error('[PATCH /troupes/:troupeId]', err);
     res.status(500).json({ error: { message: 'Internal server error' } });
   }
 });
@@ -345,15 +349,26 @@ router.post('/:troupeId/badge', async (req, res) => {
       return;
     }
 
-    const variants = await Promise.all(
-      BADGE_SIZES.map(({ size, quality }) => processVariant(req.file!.buffer, size, quality)),
-    );
+    let variants: Buffer[];
+    try {
+      variants = await Promise.all(
+        BADGE_SIZES.map(({ size, quality }) => processVariant(req.file!.buffer, size, quality)),
+      );
+    } catch (err) {
+      console.error('[POST /troupes/:troupeId/badge] sharp processing failed', err);
+      throw err;
+    }
 
-    await Promise.all(
-      BADGE_SIZES.map(({ key }, i) =>
-        uploadToR2(`badges/${troupeId}/${key}.webp`, variants[i], 'image/webp'),
-      ),
-    );
+    try {
+      await Promise.all(
+        BADGE_SIZES.map(({ key }, i) =>
+          uploadToR2(`badges/${troupeId}/${key}.webp`, variants[i], 'image/webp'),
+        ),
+      );
+    } catch (err) {
+      console.error('[POST /troupes/:troupeId/badge] R2 upload failed', err);
+      throw err;
+    }
 
     interface UpdatedRow { id: string; name: string; updated_at: Date; has_badge: boolean }
     const [updated] = await query<UpdatedRow>(
@@ -370,7 +385,8 @@ router.post('/:troupeId/badge', async (req, res) => {
       updatedAt: updated.updated_at.toISOString(),
       badges,
     });
-  } catch {
+  } catch (err) {
+    console.error('[POST /troupes/:troupeId/badge]', err);
     res.status(500).json({ error: { message: 'Internal server error' } });
   }
 });

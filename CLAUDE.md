@@ -49,6 +49,9 @@ A PWA for performing arts groups to manage membership, scheduling, and shows.
 - All routes are prefixed with /api
 - Route files are organized by domain (e.g. routes/auth.ts, routes/troupes.ts)
 - All route handlers must be wrapped in try/catch — no unhandled promise rejections
+- Every catch block that returns a 500 must call `console.error('[ROUTE]', err)` before responding — never use bare `catch {` or `catch (err) {` without logging
+- Expected errors (e.g. 401 token verification failures) do not need logging; unexpected 500s always do
+- When a route has multiple async steps that could fail independently, use inner try/catches with step-level context (e.g. `'R2 upload failed'`, `'sharp processing failed'`) so logs identify the exact failure point
 - Return consistent error shapes: { error: { message: string, code?: string } }
 - HTTP status codes must be semantically correct (401 vs 403 vs 400 vs 404)
 - Never return a full database row if it contains fields the client doesn't need

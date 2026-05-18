@@ -138,7 +138,8 @@ router.get('/:troupeId/events', async (req, res) => {
     }));
 
     res.json({ events, nextCursor });
-  } catch {
+  } catch (err) {
+    console.error('[GET /troupes/:troupeId/events]', err);
     res.status(500).json({ error: { message: 'Internal server error' } });
   }
 });
@@ -243,7 +244,8 @@ router.post('/:troupeId/events', async (req, res) => {
     };
 
     res.status(201).json(response);
-  } catch {
+  } catch (err) {
+    console.error('[POST /troupes/:troupeId/events]', err);
     res.status(500).json({ error: { message: 'Internal server error' } });
   }
 });

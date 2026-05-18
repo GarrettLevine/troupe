@@ -36,7 +36,8 @@ router.post('/sync', async (req: Request, res: Response): Promise<void> => {
        RETURNING *`,
       [uid, displayName ?? null]
     );
-  } catch {
+  } catch (err) {
+    console.error('[POST /auth/sync]', err);
     res.status(500).json({ error: 'Internal server error' });
     return;
   }
