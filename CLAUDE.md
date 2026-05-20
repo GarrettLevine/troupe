@@ -132,6 +132,13 @@ A PWA for performing arts groups to manage membership, scheduling, and shows.
 - Owner only: name editing and badge upload
 - `TroupeBadge` component is the single source of truth for badge rendering
 
+### Event feed
+- GET /api/events is the global cross-troupe feed for the home page
+- GET /api/troupes/:troupeId/events is the per-troupe feed for the troupe detail page
+- Troupe filtering on the home feed is always done server-side via troupeId query param — never filter events in the frontend
+- FeedEventCard and EventCard are separate components — FeedEventCard includes troupe context, EventCard does not
+- TroupeFilterChips receives troupes from the existing useTroupes hook — never fetch troupes separately just for the filter
+
 ### Phase boundaries
 - Phase 1 (complete): auth + home page
 - Phase 2 (complete): troupe creation

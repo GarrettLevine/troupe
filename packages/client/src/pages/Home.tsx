@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTroupes } from '../hooks/useTroupes';
+import { useEventFeed } from '../hooks/useEventFeed';
 import { MAX_TROUPES_PER_USER } from '../lib/constants';
-import { TroupeCard } from '../components/TroupeCard';
+import { TroupeBadge } from '../components/TroupeBadge';
+import { TroupeFilterChips } from '../components/TroupeFilterChips';
+import { FeedEventCard } from '../components/FeedEventCard';
 import { CreateTroupeModal } from '../components/CreateTroupeModal';
 
 function getInitials(name: string | null): string {
@@ -16,16 +20,28 @@ function getInitials(name: string | null): string {
 }
 
 export function Home() {
+  const navigate = useNavigate();
   const { dbUser, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const { troupes, loading, error, fetchTroupes, createTroupe } = useTroupes();
+  const { troupes, loading: troupesLoading, error: troupesError, fetchTroupes, createTroupe } = useTroupes();
+  const {
+    events,
+    loading: eventsLoading,
+    loadingMore,
+    error: eventsError,
+    activeTroupeId,
+    sentinelRef,
+    fetchFeed,
+  } = useEventFeed();
   const firstName = dbUser?.display_name?.split(' ')[0] ?? 'there';
   const atLimit = troupes.length >= MAX_TROUPES_PER_USER;
 
   useEffect(() => {
     fetchTroupes();
   }, [fetchTroupes]);
+
+  const activeTroupe = troupes.find((t) => t.id === activeTroupeId);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -72,11 +88,12 @@ export function Home() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Hey, {firstName}!</h2>
+      <main className="max-w-2xl mx-auto px-4 py-8 flex flex-col gap-8">
+        <h2 className="text-2xl font-bold text-gray-900">Hey, {firstName}!</h2>
 
+        {/* Troupes section */}
         <section>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
               Your Troupes ({troupes.length}/{MAX_TROUPES_PER_USER})
             </h3>
@@ -94,21 +111,18 @@ export function Home() {
             )}
           </div>
 
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {[0, 1].map((i) => (
-                <div
-                  key={i}
-                  className="bg-white rounded-xl border border-gray-200 p-4 h-28 animate-pulse"
-                >
-                  <div className="h-4 bg-gray-100 rounded w-3/4 mb-3" />
-                  <div className="h-3 bg-gray-100 rounded w-1/4" />
+          {troupesLoading ? (
+            <div className="flex flex-wrap gap-4">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex flex-col items-center gap-1.5 w-16">
+                  <div className="w-16 h-16 rounded-full bg-gray-200 animate-pulse" />
+                  <div className="w-12 h-3 bg-gray-200 rounded animate-pulse" />
                 </div>
               ))}
             </div>
-          ) : error ? (
+          ) : troupesError ? (
             <div className="bg-white rounded-xl border border-red-100 p-4 text-sm text-red-600">
-              {error}
+              {troupesError}
             </div>
           ) : troupes.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
@@ -140,15 +154,85 @@ export function Home() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex flex-wrap gap-4">
               {troupes.map((troupe) => (
-                <TroupeCard key={troupe.id} troupe={troupe} />
+                <button
+                  key={troupe.id}
+                  onClick={() => navigate(`/troupes/${troupe.id}`)}
+                  className="flex flex-col items-center gap-1.5 w-16"
+                >
+                  <TroupeBadge troupe={troupe} size="thumbnail" />
+                  <span className="text-xs text-gray-600 font-medium truncate w-full text-center">
+                    {troupe.name}
+                  </span>
+                </button>
               ))}
             </div>
           )}
         </section>
 
+        {/* Upcoming events section */}
+        <section>
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider shrink-0">
+              Upcoming Events
+            </h3>
+            {troupesLoading ? (
+              <div className="flex gap-2 py-1">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="w-8 h-8 rounded-full bg-gray-200 animate-pulse shrink-0" />
+                ))}
+              </div>
+            ) : (
+              <TroupeFilterChips
+                troupes={troupes}
+                activeTroupeId={activeTroupeId}
+                onChange={fetchFeed}
+              />
+            )}
+          </div>
 
+          {eventsLoading ? (
+            <div className="flex flex-col gap-3">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-xl border border-gray-200 p-4 h-28 animate-pulse"
+                >
+                  <div className="h-3 bg-gray-100 rounded w-1/3 mb-3" />
+                  <div className="h-4 bg-gray-100 rounded w-2/3 mb-2" />
+                  <div className="h-3 bg-gray-100 rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : eventsError ? (
+            <div className="bg-white rounded-xl border border-red-100 p-4 text-sm text-red-600">
+              {eventsError}
+            </div>
+          ) : events.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+              <p className="text-sm text-gray-500">
+                {activeTroupeId
+                  ? `No upcoming events for ${activeTroupe?.name ?? 'this troupe'}`
+                  : 'No upcoming events across your troupes'}
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {events.map((event) => (
+                <FeedEventCard key={event.id} event={event} />
+              ))}
+            </div>
+          )}
+
+          <div ref={sentinelRef} />
+
+          {loadingMore && (
+            <div className="flex justify-center py-4">
+              <div className="w-5 h-5 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+        </section>
       </main>
 
       <CreateTroupeModal

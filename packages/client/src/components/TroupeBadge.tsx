@@ -16,6 +16,7 @@ function getInitials(name: string): string {
 }
 
 const SIZE_CLASSES = {
+  xs: 'w-8 h-8 text-[10px]',
   thumbnail: 'w-16 h-16 text-base',
   standard: 'w-32 h-32 text-2xl',
   large: 'w-64 h-64 text-5xl',
@@ -23,7 +24,7 @@ const SIZE_CLASSES = {
 
 interface TroupeBadgeProps {
   troupe: { id: string; name: string; hasBadge: boolean; updatedAt?: string };
-  size: 'thumbnail' | 'standard' | 'large';
+  size: 'xs' | 'thumbnail' | 'standard' | 'large';
   className?: string;
 }
 
@@ -33,9 +34,10 @@ export function TroupeBadge({ troupe, size, className = '' }: TroupeBadgeProps) 
 
   if (troupe.hasBadge) {
     const urls = getBadgeUrls(troupe.id, troupe.updatedAt);
+    const urlSize = size === 'xs' ? 'thumbnail' : size;
     return (
       <img
-        src={urls[size]}
+        src={urls[urlSize]}
         alt={`${troupe.name} badge`}
         loading="lazy"
         className={`${base} object-cover`}
