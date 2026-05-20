@@ -44,3 +44,22 @@ export interface TroupeEvent {
   details: string | null;
   createdBy: string;
 }
+
+export interface FeedEvent {
+  id: string;
+  name: string;
+  eventType: EventType;
+  eventAt: string;
+  location: string;
+  details: string | null;
+  troupe: {
+    id: string;
+    name: string;
+    hasBadge: boolean;
+  };
+}
+
+export interface EventFeedResponse {
+  events: FeedEvent[];
+  nextCursor: string | null;
+}
