@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTroupes } from '../hooks/useTroupes';
 import { useEventFeed } from '../hooks/useEventFeed';
 import { MAX_TROUPES_PER_USER } from '../lib/constants';
-import { TroupeCard } from '../components/TroupeCard';
+import { TroupeBadge } from '../components/TroupeBadge';
 import { TroupeFilterChips } from '../components/TroupeFilterChips';
 import { FeedEventCard } from '../components/FeedEventCard';
 import { CreateTroupeModal } from '../components/CreateTroupeModal';
@@ -19,6 +20,7 @@ function getInitials(name: string | null): string {
 }
 
 export function Home() {
+  const navigate = useNavigate();
   const { dbUser, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -91,7 +93,7 @@ export function Home() {
 
         {/* Troupes section */}
         <section>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
               Your Troupes ({troupes.length}/{MAX_TROUPES_PER_USER})
             </h3>
@@ -110,14 +112,11 @@ export function Home() {
           </div>
 
           {troupesLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {[0, 1].map((i) => (
-                <div
-                  key={i}
-                  className="bg-white rounded-xl border border-gray-200 p-4 h-28 animate-pulse"
-                >
-                  <div className="h-4 bg-gray-100 rounded w-3/4 mb-3" />
-                  <div className="h-3 bg-gray-100 rounded w-1/4" />
+            <div className="flex flex-wrap gap-4">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex flex-col items-center gap-1.5 w-16">
+                  <div className="w-16 h-16 rounded-full bg-gray-200 animate-pulse" />
+                  <div className="w-12 h-3 bg-gray-200 rounded animate-pulse" />
                 </div>
               ))}
             </div>
@@ -155,9 +154,18 @@ export function Home() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex flex-wrap gap-4">
               {troupes.map((troupe) => (
-                <TroupeCard key={troupe.id} troupe={troupe} />
+                <button
+                  key={troupe.id}
+                  onClick={() => navigate(`/troupes/${troupe.id}`)}
+                  className="flex flex-col items-center gap-1.5 w-16"
+                >
+                  <TroupeBadge troupe={troupe} size="thumbnail" />
+                  <span className="text-xs text-gray-600 font-medium truncate w-full text-center">
+                    {troupe.name}
+                  </span>
+                </button>
               ))}
             </div>
           )}
@@ -165,18 +173,14 @@ export function Home() {
 
         {/* Upcoming events section */}
         <section>
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Upcoming Events
-          </h3>
-
-          <div className="mb-4">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider shrink-0">
+              Upcoming Events
+            </h3>
             {troupesLoading ? (
-              <div className="flex gap-4">
+              <div className="flex gap-2 py-1">
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className="flex flex-col items-center gap-1.5 shrink-0 w-16">
-                    <div className="w-16 h-16 rounded-full bg-gray-200 animate-pulse" />
-                    <div className="w-10 h-3 bg-gray-200 rounded animate-pulse" />
-                  </div>
+                  <div key={i} className="w-8 h-8 rounded-full bg-gray-200 animate-pulse shrink-0" />
                 ))}
               </div>
             ) : (

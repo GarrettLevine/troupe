@@ -23,36 +23,29 @@ export function TroupeFilterChips({ troupes, activeTroupeId, onChange }: TroupeF
 
   return (
     <div
-      className="flex gap-4 overflow-x-auto py-2 px-1"
+      className="flex gap-2 overflow-x-auto py-1 px-0.5"
       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
     >
       <button
         ref={allChipRef}
         onClick={() => handleClick(null)}
-        className="flex flex-col items-center gap-1.5 shrink-0 w-16"
+        className="shrink-0"
       >
         <div
-          className={`w-16 h-16 rounded-full flex items-center justify-center ring-2 ring-offset-2 transition-all ${
+          className={`w-8 h-8 rounded-full flex items-center justify-center ring-2 ring-offset-2 transition-all ${
             activeTroupeId === null
               ? 'bg-violet-600 ring-violet-600'
               : 'bg-gray-100 ring-transparent'
           }`}
         >
           <span
-            className={`text-sm font-semibold ${
+            className={`text-[10px] font-semibold ${
               activeTroupeId === null ? 'text-white' : 'text-gray-500'
             }`}
           >
             All
           </span>
         </div>
-        <span
-          className={`text-xs font-medium truncate w-full text-center ${
-            activeTroupeId === null ? 'text-gray-900' : 'text-gray-400'
-          }`}
-        >
-          All
-        </span>
       </button>
 
       {troupes.map((troupe) => {
@@ -62,22 +55,15 @@ export function TroupeFilterChips({ troupes, activeTroupeId, onChange }: TroupeF
             key={troupe.id}
             ref={isActive ? activeChipRef : undefined}
             onClick={() => handleClick(troupe.id)}
-            className="flex flex-col items-center gap-1.5 shrink-0 w-16"
+            className="shrink-0"
           >
             <div
               className={`rounded-full ring-2 ring-offset-2 transition-all ${
                 isActive ? 'ring-violet-600' : 'ring-transparent'
               }`}
             >
-              <TroupeBadge troupe={troupe} size="thumbnail" />
+              <TroupeBadge troupe={troupe} size="xs" />
             </div>
-            <span
-              className={`text-xs font-medium truncate w-full text-center ${
-                isActive ? 'text-gray-900' : 'text-gray-400'
-              }`}
-            >
-              {troupe.name}
-            </span>
           </button>
         );
       })}
