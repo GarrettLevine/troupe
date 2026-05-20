@@ -23,7 +23,7 @@ export function TroupeFilterChips({ troupes, activeTroupeId, onChange }: TroupeF
 
   return (
     <div
-      className="flex gap-4 overflow-x-auto pb-1"
+      className="flex gap-4 overflow-x-auto py-2 px-1"
       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
     >
       <button
