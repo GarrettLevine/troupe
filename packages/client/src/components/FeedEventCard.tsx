@@ -2,17 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { FeedEvent } from '../hooks/useEventFeed';
 import { TroupeBadge } from './TroupeBadge';
 import { EVENT_TYPE_STYLES } from '../lib/constants';
-
-function formatEventDate(eventAt: string): string {
-  return new Intl.DateTimeFormat('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZoneName: 'short',
-  }).format(new Date(eventAt));
-}
+import { formatEventDate } from '../lib/utils';
 
 interface FeedEventCardProps {
   event: FeedEvent;
