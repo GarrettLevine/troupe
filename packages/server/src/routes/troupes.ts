@@ -310,6 +310,31 @@ router.patch('/:troupeId', async (req, res) => {
   }
 });
 
+router.delete('/:troupeId', async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const { troupeId } = req.params;
+    interface MemberRow { role: string }
+    const memberRows = await query<MemberRow>(
+      'SELECT role FROM troupe_members WHERE troupe_id = $1 AND user_id = $2',
+      [troupeId, userId],
+    );
+    if (memberRows.length === 0) {
+      res.status(404).json({ error: { message: 'Troupe not found' } });
+      return;
+    }
+    if (memberRows[0].role !== 'owner') {
+      res.status(403).json({ error: { message: 'Only the owner can delete a troupe' } });
+      return;
+    }
+    await query('DELETE FROM troupes WHERE id = $1', [troupeId]);
+    res.status(204).send();
+  } catch (err) {
+    console.error('[DELETE /troupes/:troupeId]', err);
+    res.status(500).json({ error: { message: 'Internal server error' } });
+  }
+});
+
 router.post('/:troupeId/badge', async (req, res) => {
   try {
     try {

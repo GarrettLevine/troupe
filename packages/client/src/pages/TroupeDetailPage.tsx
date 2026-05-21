@@ -6,6 +6,7 @@ import { EventCard } from '../components/EventCard';
 import { AddEventModal } from '../components/AddEventModal';
 import { EditTroupeModal } from '../components/EditTroupeModal';
 import { InviteShareModal } from '../components/InviteShareModal';
+import { TroupeActionsMenu } from '../components/TroupeActionsMenu';
 import { TroupeBadge } from '../components/TroupeBadge';
 import { ROLE_STYLES } from '../lib/constants';
 
@@ -14,12 +15,15 @@ type TabType = 'upcoming' | 'past';
 export function TroupeDetailPage() {
   const { troupeId } = useParams<{ troupeId: string }>();
   const navigate = useNavigate();
-  const { detail, loading: detailLoading, error: detailError, fetchTroupeDetail, updateDetail } =
+  const { detail, loading: detailLoading, error: detailError, fetchTroupeDetail, updateDetail, deleteTroupe } =
     useTroupeDetail();
   const [activeTab, setActiveTab] = useState<TabType>('upcoming');
   const [addEventOpen, setAddEventOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const { events, loading: eventsLoading, error: eventsError, sentinelRef, createEvent, resetAndRefetch } =
     useEvents(troupeId!, activeTab);
 
@@ -29,8 +33,22 @@ export function TroupeDetailPage() {
 
   const canCreateEvents =
     detail?.currentUserRole === 'owner' || detail?.currentUserRole === 'organizer';
-  const canInvite =
+  const canManage =
     detail?.currentUserRole === 'owner' || detail?.currentUserRole === 'organizer';
+
+  const handleDelete = async () => {
+    if (!troupeId) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await deleteTroupe(troupeId);
+      navigate('/');
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete troupe');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleEventCreated = () => {
     if (activeTab === 'upcoming') {
@@ -61,27 +79,17 @@ export function TroupeDetailPage() {
         {!detailLoading && detail && (
           <section className="flex items-center gap-4">
             <TroupeBadge troupe={detail} size="large" />
-            <div className="flex flex-col gap-1 min-w-0">
+            <div className="flex flex-col gap-1 min-w-0 flex-1">
               <h1 className="text-xl font-bold text-gray-900 truncate">{detail.name}</h1>
-              <div className="flex flex-wrap gap-3">
-                {canInvite && (
-                  <button
-                    onClick={() => setInviteOpen(true)}
-                    className="text-sm font-medium text-violet-600 hover:text-violet-700 transition-colors"
-                  >
-                    Invite Members
-                  </button>
-                )}
-                {detail.currentUserRole === 'owner' && (
-                  <button
-                    onClick={() => setEditOpen(true)}
-                    className="text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    Edit Troupe
-                  </button>
-                )}
-              </div>
             </div>
+            {canManage && (
+              <TroupeActionsMenu
+                role={detail.currentUserRole}
+                onInvite={() => setInviteOpen(true)}
+                onEdit={() => setEditOpen(true)}
+                onDelete={() => { setDeleteError(''); setDeleteConfirmOpen(true); }}
+              />
+            )}
           </section>
         )}
 
@@ -210,13 +218,42 @@ export function TroupeDetailPage() {
         />
       )}
 
-      {canInvite && detail && (
+      {canManage && detail && (
         <InviteShareModal
           open={inviteOpen}
           onClose={() => setInviteOpen(false)}
           troupeId={troupeId!}
           troupeName={detail.name}
         />
+      )}
+
+      {deleteConfirmOpen && detail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => !deleting && setDeleteConfirmOpen(false)} />
+          <div className="relative bg-white rounded-2xl p-6 w-full max-w-sm flex flex-col gap-4 shadow-xl">
+            <h2 className="text-base font-semibold text-gray-900">Delete {detail.name}?</h2>
+            <p className="text-sm text-gray-500">
+              This will permanently delete the troupe, all its events, and remove all members. This cannot be undone.
+            </p>
+            {deleteError && <p className="text-sm text-red-600">{deleteError}</p>}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirmOpen(false)}
+                disabled={deleting}
+                className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 bg-red-600 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
