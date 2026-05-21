@@ -79,6 +79,7 @@ router.get('/', async (req, res) => {
        FROM troupes t
        JOIN troupe_members tm ON tm.troupe_id = t.id AND tm.user_id = $1
        JOIN troupe_members all_members ON all_members.troupe_id = t.id
+       WHERE t.deleted_at IS NULL
        GROUP BY t.id, t.name, tm.role, t.created_at, t.updated_at, t.has_badge
        ORDER BY t.created_at DESC`,
       [req.user!.id],
@@ -120,7 +121,10 @@ router.post('/', async (req, res) => {
 
     interface CountRow { count: string }
     const [{ count }] = await query<CountRow>(
-      `SELECT COUNT(*) AS count FROM troupe_members WHERE user_id = $1 AND role = 'owner'`,
+      `SELECT COUNT(*) AS count
+       FROM troupe_members tm
+       JOIN troupes t ON t.id = tm.troupe_id
+       WHERE tm.user_id = $1 AND tm.role = 'owner' AND t.deleted_at IS NULL`,
       [userId],
     );
 
@@ -204,7 +208,7 @@ router.get('/:troupeId', async (req, res) => {
        FROM troupes t
        JOIN troupe_members tm ON tm.troupe_id = t.id
        JOIN users u ON u.id = tm.user_id
-       WHERE t.id = $1
+       WHERE t.id = $1 AND t.deleted_at IS NULL
        GROUP BY t.id, t.name, t.created_at, t.updated_at, t.has_badge`,
       [troupeId, userId],
     );
@@ -266,7 +270,7 @@ router.patch('/:troupeId', async (req, res) => {
 
     const rows = await query<UpdatedRow>(
       `WITH updated AS (
-         UPDATE troupes SET name = $1 WHERE id = $2
+         UPDATE troupes SET name = $1 WHERE id = $2 AND deleted_at IS NULL
          RETURNING id, name, created_at, updated_at, has_badge
        )
        SELECT
@@ -327,7 +331,7 @@ router.delete('/:troupeId', async (req, res) => {
       res.status(403).json({ error: { message: 'Only the owner can delete a troupe' } });
       return;
     }
-    await query('DELETE FROM troupes WHERE id = $1', [troupeId]);
+    await query('UPDATE troupes SET deleted_at = NOW() WHERE id = $1', [troupeId]);
     res.status(204).send();
   } catch (err) {
     console.error('[DELETE /troupes/:troupeId]', err);

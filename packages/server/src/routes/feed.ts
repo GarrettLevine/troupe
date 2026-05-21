@@ -61,6 +61,7 @@ router.get('/', async (req, res) => {
          JOIN troupes t ON t.id = e.troupe_id
          JOIN troupe_members tm ON tm.troupe_id = e.troupe_id AND tm.user_id = $1
          WHERE e.event_at >= NOW()
+           AND t.deleted_at IS NULL
            AND e.troupe_id = $2::uuid
            AND (e.event_at > $3::timestamptz OR (e.event_at = $3::timestamptz AND e.id > $4::uuid))
          ORDER BY e.event_at ASC, e.id ASC
@@ -75,6 +76,7 @@ router.get('/', async (req, res) => {
          JOIN troupes t ON t.id = e.troupe_id
          JOIN troupe_members tm ON tm.troupe_id = e.troupe_id AND tm.user_id = $1
          WHERE e.event_at >= NOW()
+           AND t.deleted_at IS NULL
            AND e.troupe_id = $2::uuid
          ORDER BY e.event_at ASC, e.id ASC
          LIMIT $3`,
@@ -89,6 +91,7 @@ router.get('/', async (req, res) => {
          JOIN troupes t ON t.id = e.troupe_id
          JOIN troupe_members tm ON tm.troupe_id = e.troupe_id AND tm.user_id = $1
          WHERE e.event_at >= NOW()
+           AND t.deleted_at IS NULL
            AND (e.event_at > $2::timestamptz OR (e.event_at = $2::timestamptz AND e.id > $3::uuid))
          ORDER BY e.event_at ASC, e.id ASC
          LIMIT $4`,
@@ -102,6 +105,7 @@ router.get('/', async (req, res) => {
          JOIN troupes t ON t.id = e.troupe_id
          JOIN troupe_members tm ON tm.troupe_id = e.troupe_id AND tm.user_id = $1
          WHERE e.event_at >= NOW()
+           AND t.deleted_at IS NULL
          ORDER BY e.event_at ASC, e.id ASC
          LIMIT $2`,
         [userId, limit + 1],

@@ -17,7 +17,7 @@ router.post('/:troupeId/invites', requireAuth, async (req, res) => {
     // Verify troupe exists
     interface TroupeRow { id: string }
     const troupeRows = await query<TroupeRow>(
-      'SELECT id FROM troupes WHERE id = $1',
+      'SELECT id FROM troupes WHERE id = $1 AND deleted_at IS NULL',
       [troupeId],
     );
     if (troupeRows.length === 0) {
@@ -139,7 +139,7 @@ router.get('/:code', async (req, res) => {
        FROM troupe_invites ti
        JOIN troupes t ON t.id = ti.troupe_id
        LEFT JOIN troupe_members tm ON tm.troupe_id = t.id
-       WHERE ti.code = $1
+       WHERE ti.code = $1 AND t.deleted_at IS NULL
        GROUP BY ti.id, t.id`,
       [code],
     );
@@ -265,7 +265,7 @@ router.post('/:code/redeem', requireAuth, async (req, res) => {
       `SELECT t.name, t.has_badge, COUNT(tm.user_id)::text AS member_count
        FROM troupes t
        JOIN troupe_members tm ON tm.troupe_id = t.id
-       WHERE t.id = $1
+       WHERE t.id = $1 AND t.deleted_at IS NULL
        GROUP BY t.id`,
       [inv.troupe_id],
     );
