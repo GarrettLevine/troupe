@@ -1,4 +1,4 @@
-# Troupe
+# Troupes
 
 A PWA for performing arts groups to manage membership, scheduling, and shows.
 
