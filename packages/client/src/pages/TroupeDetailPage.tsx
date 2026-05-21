@@ -5,6 +5,7 @@ import { useEvents } from '../hooks/useEvents';
 import { EventCard } from '../components/EventCard';
 import { AddEventModal } from '../components/AddEventModal';
 import { EditTroupeModal } from '../components/EditTroupeModal';
+import { InviteShareModal } from '../components/InviteShareModal';
 import { TroupeBadge } from '../components/TroupeBadge';
 import { ROLE_STYLES } from '../lib/constants';
 
@@ -18,6 +19,7 @@ export function TroupeDetailPage() {
   const [activeTab, setActiveTab] = useState<TabType>('upcoming');
   const [addEventOpen, setAddEventOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const { events, loading: eventsLoading, error: eventsError, sentinelRef, createEvent, resetAndRefetch } =
     useEvents(troupeId!, activeTab);
 
@@ -26,6 +28,8 @@ export function TroupeDetailPage() {
   }, [troupeId, fetchTroupeDetail]);
 
   const canCreateEvents =
+    detail?.currentUserRole === 'owner' || detail?.currentUserRole === 'organizer';
+  const canInvite =
     detail?.currentUserRole === 'owner' || detail?.currentUserRole === 'organizer';
 
   const handleEventCreated = () => {
@@ -59,14 +63,24 @@ export function TroupeDetailPage() {
             <TroupeBadge troupe={detail} size="large" />
             <div className="flex flex-col gap-1 min-w-0">
               <h1 className="text-xl font-bold text-gray-900 truncate">{detail.name}</h1>
-              {detail.currentUserRole === 'owner' && (
-                <button
-                  onClick={() => setEditOpen(true)}
-                  className="text-sm font-medium text-violet-600 hover:text-violet-700 transition-colors self-start"
-                >
-                  Edit Troupe
-                </button>
-              )}
+              <div className="flex flex-wrap gap-3">
+                {canInvite && (
+                  <button
+                    onClick={() => setInviteOpen(true)}
+                    className="text-sm font-medium text-violet-600 hover:text-violet-700 transition-colors"
+                  >
+                    Invite Members
+                  </button>
+                )}
+                {detail.currentUserRole === 'owner' && (
+                  <button
+                    onClick={() => setEditOpen(true)}
+                    className="text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    Edit Troupe
+                  </button>
+                )}
+              </div>
             </div>
           </section>
         )}
@@ -193,6 +207,15 @@ export function TroupeDetailPage() {
           updatedAt={detail.updatedAt}
           onNameUpdated={(name, updatedAt) => updateDetail({ name, updatedAt })}
           onBadgeUploaded={(updatedAt) => updateDetail({ hasBadge: true, updatedAt })}
+        />
+      )}
+
+      {canInvite && detail && (
+        <InviteShareModal
+          open={inviteOpen}
+          onClose={() => setInviteOpen(false)}
+          troupeId={troupeId!}
+          troupeName={detail.name}
         />
       )}
     </div>

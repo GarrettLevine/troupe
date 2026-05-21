@@ -63,3 +63,20 @@ export interface EventFeedResponse {
   events: FeedEvent[];
   nextCursor: string | null;
 }
+
+export interface InviteResponse {
+  code: string;
+  inviteUrl: string;
+  expiresAt: string;
+}
+
+export interface InvitePreview {
+  code: string;
+  troupe: {
+    id: string;
+    name: string;
+    memberCount: number;
+    hasBadge: boolean;
+  };
+  expiresAt: string;
+}

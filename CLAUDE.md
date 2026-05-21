@@ -11,9 +11,12 @@ A PWA for performing arts groups to manage membership, scheduling, and shows.
 
 ## Completed Phases
 - Phase 1: auth + home page
+- Phase 2: troupe creation
+- Phase 3: troupe detail page + events
+- Phase 3.5: troupe badge upload + name editing
+- Phase 4 (current): invite links
 
-## What's NOT built yet (Phase 3 in progress)
-- Invite code system
+## What's NOT built yet
 - Polls / scheduling
 - Shows
 
@@ -139,11 +142,23 @@ A PWA for performing arts groups to manage membership, scheduling, and shows.
 - FeedEventCard and EventCard are separate components — FeedEventCard includes troupe context, EventCard does not
 - TroupeFilterChips receives troupes from the existing useTroupes hook — never fetch troupes separately just for the filter
 
+### Invite links
+- Invite codes are generated with nanoid v3 (10 characters, URL-safe)
+- Links are single use and expire after 7 days
+- Only owners and organizers can generate invite links
+- Each user can only have one active invite per troupe at a time
+- Redemption uses SELECT FOR UPDATE to prevent race conditions
+- GET /api/invites/:code is the only public (unauthenticated) API route
+- The invite page handles auth redirect via ?redirect= query param on Login
+- navigator.share is used on mobile with clipboard copy as fallback
+- force=true on POST /api/troupes/:troupeId/invites updates the existing invite row rather than inserting — keeps one active invite per user per troupe
+
 ### Phase boundaries
 - Phase 1 (complete): auth + home page
 - Phase 2 (complete): troupe creation
 - Phase 3 (complete): troupe detail page + events
 - Phase 3.5 (complete): troupe badge upload + name editing
-- Phase 4: polls + scheduling
-- Phase 5: shows
+- Phase 4 (complete): invite links
+- Phase 5: polls + scheduling
+- Phase 6: shows
 - Do not build ahead of the current phase without being asked

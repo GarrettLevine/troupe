@@ -6,7 +6,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 type Step = 'phone' | 'otp' | 'name';
 
@@ -21,6 +21,13 @@ const COUNTRY_CODES = [
 export function Login() {
   const { user, dbUser, loading, refreshDbUser } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const getRedirect = () => {
+    const redirect = searchParams.get('redirect');
+    if (redirect && redirect.startsWith('/')) return redirect;
+    return '/';
+  };
 
   const [step, setStep] = useState<Step>('phone');
   const [countryCode, setCountryCode] = useState('+1');
@@ -35,10 +42,11 @@ export function Login() {
   useEffect(() => {
     if (loading) return;
     if (user && dbUser?.display_name) {
-      navigate('/', { replace: true });
+      navigate(getRedirect(), { replace: true });
     } else if (user && dbUser && !dbUser.display_name) {
       setStep('name');
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, user, dbUser, navigate]);
 
   useEffect(() => {
@@ -118,7 +126,7 @@ export function Login() {
     setSubmitting(true);
     try {
       await refreshDbUser(displayName.trim());
-      navigate('/', { replace: true });
+      navigate(getRedirect(), { replace: true });
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {
