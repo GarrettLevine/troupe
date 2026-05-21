@@ -23,7 +23,7 @@ async function getMembership(
   userId: string,
 ): Promise<{ exists: boolean; role: TroupeRole | null }> {
   interface TroupeRow { id: string }
-  const troupeRows = await query<TroupeRow>('SELECT id FROM troupes WHERE id = $1', [troupeId]);
+  const troupeRows = await query<TroupeRow>('SELECT id FROM troupes WHERE id = $1 AND deleted_at IS NULL', [troupeId]);
   if (troupeRows.length === 0) return { exists: false, role: null };
 
   interface MemberRow { role: TroupeRole }

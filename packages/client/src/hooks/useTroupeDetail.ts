@@ -52,5 +52,21 @@ export function useTroupeDetail() {
     setDetail((prev) => (prev ? { ...prev, ...updates } : null));
   }, []);
 
-  return { detail, loading, error, fetchTroupeDetail, updateDetail };
+  const deleteTroupe = useCallback(
+    async (troupeId: string) => {
+      if (!user) throw new Error('Not authenticated');
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/troupes/${troupeId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: { message?: string } };
+        throw new Error(body.error?.message ?? 'Failed to delete troupe');
+      }
+    },
+    [user],
+  );
+
+  return { detail, loading, error, fetchTroupeDetail, updateDetail, deleteTroupe };
 }
