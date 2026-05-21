@@ -68,9 +68,6 @@ export function TroupeDetailPage() {
           >
             ← Back
           </button>
-          <span className="font-semibold text-gray-900 truncate">
-            {detailLoading ? '…' : (detail?.name ?? 'Troupe')}
-          </span>
         </div>
       </header>
 
