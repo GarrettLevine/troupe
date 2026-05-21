@@ -92,6 +92,8 @@ A PWA for performing arts groups to manage membership, scheduling, and shows.
   - PR 3: drop old column
 - Secrets live in GitHub repository secrets — never in code or committed `.env` files
 - To manually roll back a migration: `pnpm migrate:down` (run locally against prod via Cloud SQL Auth Proxy)
+- When adding a new server env variable: add to GCP Secret Manager AND to the `secrets:` block in the Deploy to Cloud Run step in `.github/workflows/deploy.yml`
+- When adding a new client `VITE_` variable: add to GitHub repository secrets AND to the `env:` block in the Build client step in `.github/workflows/deploy.yml`
 
 ### Troupe roles
 - `TroupeRole` = `'owner' | 'organizer' | 'member'`

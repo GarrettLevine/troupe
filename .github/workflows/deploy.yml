@@ -65,6 +65,7 @@ jobs:
             R2_BUCKET_NAME=R2_BUCKET_NAME:latest
             R2_PUBLIC_URL=R2_PUBLIC_URL:latest
             DATABASE_URL=DATABASE_URL:latest
+            APP_URL=APP_URL:latest
 
   deploy-hosting:
     name: Deploy to Firebase Hosting
@@ -95,6 +96,7 @@ jobs:
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
           VITE_R2_PUBLIC_URL: ${{ secrets.VITE_R2_PUBLIC_URL }}
+          VITE_APP_URL: ${{ secrets.VITE_APP_URL }}
         run: pnpm --filter client build
 
       - name: Deploy to Firebase Hosting
