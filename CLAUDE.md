@@ -27,6 +27,7 @@ A PWA for performing arts groups to manage membership, scheduling, and shows.
 - No `any` types — use `unknown` and narrow, or define a proper interface
 - Prefer `async/await` over promise chains
 - No unused imports or variables — treat them as errors
+- prioritize keeping constants and utility functions in a folders which generalize use, avoid duplicating code.
 
 ### Security
 - `firebase_uid` is always sourced from the verified server-side token (req.user) 
