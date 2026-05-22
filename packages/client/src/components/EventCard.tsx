@@ -1,22 +1,6 @@
 import { TroupeEvent } from '../hooks/useEvents';
 import { EVENT_TYPE_STYLES } from '../lib/constants';
-
-function formatCompactDate(isoString: string): string {
-  return new Intl.DateTimeFormat('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(isoString));
-}
-
-function formatTime(isoString: string): string {
-  return new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(isoString));
-}
+import { formatCompactDate, formatTime } from '../lib/utils';
 
 interface EventCardProps {
   event: TroupeEvent;

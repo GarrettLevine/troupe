@@ -1,14 +1,7 @@
 import { useState, useEffect } from 'react';
 import { TroupeEvent, UpdateEventData } from '../hooks/useEvents';
 import { TroupeRole, EVENT_TYPE_STYLES, MAX_EVENT_NAME_LENGTH, MAX_EVENT_LOCATION_LENGTH, MAX_EVENT_DETAILS_LENGTH } from '../lib/constants';
-import { formatEventDate } from '../lib/utils';
-
-function formatTime(isoString: string): string {
-  return new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(isoString));
-}
+import { formatEventDate, formatTime } from '../lib/utils';
 
 function toLocalDatetimeValue(isoString: string): string {
   const d = new Date(isoString);
