@@ -1,6 +1,29 @@
 export type TroupeRole = 'owner' | 'organizer' | 'member';
 export type EventType = 'show' | 'rehearsal';
 export type EventStatus = 'scheduled' | 'cancelled';
+export type AttendanceStatus = 'attending' | 'not_attending' | 'maybe' | 'late';
+
+export interface AttendeeChip {
+  userId: string;
+  displayName: string;
+  initials: string;
+}
+
+export interface AttendanceSummary {
+  attending: AttendeeChip[];
+  notAttending: AttendeeChip[];
+  maybe: AttendeeChip[];
+  late: AttendeeChip[];
+  noResponse: AttendeeChip[];
+  counts: {
+    attending: number;
+    notAttending: number;
+    maybe: number;
+    late: number;
+    noResponse: number;
+    total: number;
+  };
+}
 
 export interface TroupeBadges {
   thumbnail: string;
@@ -49,6 +72,8 @@ export interface TroupeEvent {
   details: string | null;
   status: EventStatus;
   createdBy: string;
+  attendance: AttendanceSummary;
+  currentUserAttendance: AttendanceStatus | null;
 }
 
 export interface FeedEvent {
@@ -64,6 +89,8 @@ export interface FeedEvent {
   location: string;
   details: string | null;
   createdBy: string;
+  attendance: AttendanceSummary;
+  currentUserAttendance: AttendanceStatus | null;
   troupe: {
     id: string;
     name: string;

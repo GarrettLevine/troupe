@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { UpdateEventData } from './useEvents';
+import { UpdateEventData, AttendanceStatus, AttendanceSummary } from './useEvents';
 
 export interface FeedEvent {
   id: string;
@@ -15,6 +15,8 @@ export interface FeedEvent {
   location: string;
   details: string | null;
   createdBy: string;
+  attendance: AttendanceSummary;
+  currentUserAttendance: AttendanceStatus | null;
   troupe: {
     id: string;
     name: string;
@@ -145,6 +147,49 @@ export function useEventFeed() {
     [user],
   );
 
+  const updateAttendance = useCallback(
+    async (troupeId: string, eventId: string, status: AttendanceStatus | null): Promise<FeedEvent> => {
+      if (!user) throw new Error('Not authenticated');
+      const token = await user.getIdToken();
+
+      let snapshot: FeedEvent | undefined;
+      setEvents((prev) => {
+        snapshot = prev.find((e) => e.id === eventId);
+        if (!snapshot) return prev;
+        return prev.map((e) => (e.id === eventId ? { ...e, currentUserAttendance: status } : e));
+      });
+
+      if (!snapshot) throw new Error('Event not found');
+      const saved = snapshot;
+
+      try {
+        const res = await fetch(`/api/troupes/${troupeId}/events/${eventId}/attendance`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ status }),
+        });
+        if (!res.ok) {
+          const body = (await res.json()) as { error: { message: string } };
+          throw new Error(body.error?.message ?? 'Failed to update attendance');
+        }
+        const { attendance, currentUserAttendance } = (await res.json()) as {
+          attendance: AttendanceSummary;
+          currentUserAttendance: AttendanceStatus | null;
+        };
+        const updated: FeedEvent = { ...saved, attendance, currentUserAttendance };
+        setEvents((prev) => prev.map((e) => (e.id === eventId ? updated : e)));
+        return updated;
+      } catch (err) {
+        setEvents((prev) => prev.map((e) => (e.id === eventId ? saved : e)));
+        throw err;
+      }
+    },
+    [user],
+  );
+
   useEffect(() => {
     fetchFeed();
   }, [fetchFeed]);
@@ -164,5 +209,5 @@ export function useEventFeed() {
     return () => observer.disconnect();
   }, [fetchMore]);
 
-  return { events, loading, loadingMore, error, activeTroupeId, sentinelRef, fetchFeed, fetchMore, updateEvent, deleteEvent };
+  return { events, loading, loadingMore, error, activeTroupeId, sentinelRef, fetchFeed, fetchMore, updateEvent, deleteEvent, updateAttendance };
 }

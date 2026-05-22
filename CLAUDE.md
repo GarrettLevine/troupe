@@ -165,6 +165,17 @@ A PWA for performing arts groups to manage membership, scheduling, and shows.
 - navigator.share is used on mobile with clipboard copy as fallback
 - force=true on POST /api/troupes/:troupeId/invites updates the existing invite row rather than inserting — keeps one active invite per user per troupe
 
+### Attendance
+- Attendance statuses: attending, not_attending, maybe, late
+- null attendance = no response (not stored, derived from absence of row)
+- Upsert attendance with INSERT ... ON CONFLICT DO UPDATE
+- null status in PUT body clears the row (DELETE)
+- Attendance cannot be set on cancelled events (409)
+- Attendance updates are optimistic — roll back on API error
+- Initials are always derived server-side via getInitials() helper
+- noResponse is derived server-side: troupe members with no attendance row
+- AttendeeChipList renders nothing when the attendees array is empty
+
 ### Phase boundaries
 - Phase 1 (complete): auth + home page
 - Phase 2 (complete): troupe creation

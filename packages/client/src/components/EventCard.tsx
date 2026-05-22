@@ -1,5 +1,5 @@
 import { TroupeEvent } from '../hooks/useEvents';
-import { EVENT_TYPE_STYLES } from '../lib/constants';
+import { EVENT_TYPE_STYLES, ATTENDANCE_OPTIONS } from '../lib/constants';
 import { formatCompactDate, formatTime } from '../lib/utils';
 
 interface EventCardProps {
@@ -17,6 +17,18 @@ export function EventCard({ event, onClick }: EventCardProps) {
     .filter(Boolean)
     .join(' · ');
 
+  const { counts } = event.attendance;
+  const countFor = (s: typeof ATTENDANCE_OPTIONS[number]['status']) =>
+    s === 'not_attending' ? counts.notAttending : counts[s];
+  const countParts = ATTENDANCE_OPTIONS
+    .map((opt) => countFor(opt.status) > 0 ? `${countFor(opt.status)} ${opt.label.toLowerCase()}` : null)
+    .filter(Boolean)
+    .join(' · ');
+
+  const myAttendance = event.currentUserAttendance
+    ? ATTENDANCE_OPTIONS.find((o) => o.status === event.currentUserAttendance)
+    : null;
+
   return (
     <button
       onClick={onClick}
@@ -24,34 +36,45 @@ export function EventCard({ event, onClick }: EventCardProps) {
         onClick ? 'hover:bg-gray-50 active:bg-gray-100' : 'cursor-default'
       } ${isCancelled ? 'opacity-50' : ''}`}
     >
-      {/* Row 1: title + badge */}
+      {/* Row 1: title + badge/date */}
       <div className="flex items-start justify-between gap-3">
         <h4 className="font-semibold text-gray-900 text-sm leading-snug flex-1 min-w-0">{event.name}</h4>
-        <div className="flex gap-1 shrink-0">
-          {isCancelled && (
-            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700">
-              Cancelled
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <div className="flex gap-1">
+            {isCancelled && (
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                Cancelled
+              </span>
+            )}
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${EVENT_TYPE_STYLES[event.eventType]}`}>
+              {event.eventType === 'show' ? 'Show' : 'Rehearsal'}
             </span>
-          )}
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${EVENT_TYPE_STYLES[event.eventType]}`}>
-            {event.eventType === 'show' ? 'Show' : 'Rehearsal'}
-          </span>
+          </div>
+          <span className="text-xs text-gray-400 whitespace-nowrap">{formatCompactDate(event.eventAt)}</span>
         </div>
       </div>
 
-      {/* Row 2: call time / duration (left) + date (right) */}
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="text-xs text-gray-500">{callDurationLine || ' '}</span>
-        <span className="text-xs text-gray-400 whitespace-nowrap shrink-0">{formatCompactDate(event.eventAt)}</span>
+      {/* Row 2: call/duration + location */}
+      <div className="flex flex-col gap-0.5">
+        {callDurationLine && <p className="text-xs text-gray-500">{callDurationLine}</p>}
+        <p className="text-xs text-gray-500">Location: {event.location}</p>
       </div>
 
-      {/* Row 3: location */}
-      <p className="text-xs text-gray-500">Location: {event.location}</p>
+      {/* Row 3: details */}
+      {event.details && <p className="text-xs text-gray-600">{event.details}</p>}
 
-      {/* Row 4: details */}
-      {event.details && (
-        <p className="text-xs text-gray-600">{event.details}</p>
-      )}
+      {/* Row 4: attendance */}
+      <div className="flex items-center justify-between gap-2 pt-0.5">
+        {myAttendance ? (
+          <div className="flex items-center gap-1.5">
+            <div className={`w-2 h-2 rounded-full shrink-0 ${myAttendance.dotClass}`} />
+            <span className={`text-xs font-medium ${myAttendance.textClass}`}>{myAttendance.label}</span>
+          </div>
+        ) : (
+          <span className="text-xs text-gray-400">Respond</span>
+        )}
+        {countParts && <span className="text-xs text-gray-400 shrink-0">{countParts}</span>}
+      </div>
     </button>
   );
 }

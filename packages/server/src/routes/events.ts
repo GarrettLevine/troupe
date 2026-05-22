@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/requireAuth';
 import { query } from '../db';
-import { EventType, EventStatus, TroupeEvent, TroupeRole } from '../types/troupe';
+import { EventType, EventStatus, TroupeEvent, TroupeRole, AttendanceStatus } from '../types/troupe';
 import { formatDuration, deriveCallTime } from '../lib/formatDuration';
+import { fetchAttendance, EventAttendanceData, EMPTY_ATTENDANCE, VALID_ATTENDANCE_STATUSES } from '../lib/attendance';
 
 const router = Router({ mergeParams: true });
 router.use(requireAuth);
@@ -48,7 +49,7 @@ interface EventRow {
   created_by: string;
 }
 
-function rowToEvent(row: EventRow): TroupeEvent {
+function rowToEvent(row: EventRow, attendanceData: EventAttendanceData): TroupeEvent {
   return {
     id: row.id,
     name: row.name,
@@ -64,6 +65,8 @@ function rowToEvent(row: EventRow): TroupeEvent {
     details: row.details,
     status: row.status,
     createdBy: row.created_by,
+    attendance: attendanceData.attendance,
+    currentUserAttendance: attendanceData.currentUserAttendance,
   };
 }
 
@@ -158,7 +161,12 @@ router.get('/:troupeId/events', async (req, res) => {
     const lastRow = pageRows[pageRows.length - 1];
     const nextCursor = hasMore && lastRow ? encodeCursor(lastRow.event_at, lastRow.id) : null;
 
-    res.json({ events: pageRows.map(rowToEvent), nextCursor });
+    const attendanceMap = await fetchAttendance(pageRows.map((r) => r.id), userId);
+
+    res.json({
+      events: pageRows.map((r) => rowToEvent(r, attendanceMap.get(r.id) ?? EMPTY_ATTENDANCE)),
+      nextCursor,
+    });
   } catch (err) {
     console.error('[GET /troupes/:troupeId/events]', err);
     res.status(500).json({ error: { message: 'Internal server error' } });
@@ -267,7 +275,8 @@ router.post('/:troupeId/events', async (req, res) => {
       ],
     );
 
-    res.status(201).json(rowToEvent(event));
+    const attendanceMap = await fetchAttendance([event.id], userId);
+    res.status(201).json(rowToEvent(event, attendanceMap.get(event.id) ?? EMPTY_ATTENDANCE));
   } catch (err) {
     console.error('[POST /troupes/:troupeId/events]', err);
     res.status(500).json({ error: { message: 'Internal server error' } });
@@ -430,7 +439,8 @@ router.patch('/:troupeId/events/:eventId', async (req, res) => {
       params,
     );
 
-    res.json(rowToEvent(updated));
+    const attendanceMap = await fetchAttendance([updated.id], userId);
+    res.json(rowToEvent(updated, attendanceMap.get(updated.id) ?? EMPTY_ATTENDANCE));
   } catch (err) {
     console.error('[PATCH /troupes/:troupeId/events/:eventId]', err);
     res.status(500).json({ error: { message: 'Internal server error' } });
@@ -472,6 +482,62 @@ router.delete('/:troupeId/events/:eventId', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('[DELETE /troupes/:troupeId/events/:eventId]', err);
+    res.status(500).json({ error: { message: 'Internal server error' } });
+  }
+});
+
+router.put('/:troupeId/events/:eventId/attendance', async (req, res) => {
+  try {
+    const { troupeId, eventId } = req.params;
+    const userId = req.user!.id;
+
+    const { exists, role } = await getMembership(troupeId, userId);
+    if (!exists) {
+      res.status(404).json({ error: { message: 'Troupe not found' } });
+      return;
+    }
+    if (!role) {
+      res.status(403).json({ error: { message: 'You are not a member of this troupe' } });
+      return;
+    }
+
+    const { status } = req.body as { status?: unknown };
+    if (status !== null && status !== undefined && !VALID_ATTENDANCE_STATUSES.includes(status as AttendanceStatus)) {
+      res.status(400).json({ error: { message: 'status must be attending, not_attending, maybe, late, or null' } });
+      return;
+    }
+
+    interface EventCheck { id: string; status: EventStatus }
+    const eventRows = await query<EventCheck>(
+      'SELECT id, status FROM events WHERE id = $1 AND troupe_id = $2 AND deleted_at IS NULL',
+      [eventId, troupeId],
+    );
+    if (eventRows.length === 0) {
+      res.status(404).json({ error: { message: 'Event not found' } });
+      return;
+    }
+    if (eventRows[0].status === 'cancelled') {
+      res.status(409).json({ error: { message: 'Cannot update attendance for a cancelled event' } });
+      return;
+    }
+
+    if (status === null || status === undefined) {
+      await query('DELETE FROM event_attendance WHERE event_id = $1 AND user_id = $2', [eventId, userId]);
+    } else {
+      await query(
+        `INSERT INTO event_attendance (event_id, user_id, status)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (event_id, user_id)
+         DO UPDATE SET status = EXCLUDED.status, updated_at = NOW()`,
+        [eventId, userId, status],
+      );
+    }
+
+    const attendanceMap = await fetchAttendance([eventId], userId);
+    const data = attendanceMap.get(eventId) ?? EMPTY_ATTENDANCE;
+    res.json({ attendance: data.attendance, currentUserAttendance: data.currentUserAttendance });
+  } catch (err) {
+    console.error('[PUT /troupes/:troupeId/events/:eventId/attendance]', err);
     res.status(500).json({ error: { message: 'Internal server error' } });
   }
 });
