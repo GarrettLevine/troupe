@@ -1,48 +1,7 @@
 import { useState, useEffect } from 'react';
 import { TroupeEvent, UpdateEventData } from '../hooks/useEvents';
-import { TroupeRole, EVENT_TYPE_STYLES, MAX_EVENT_NAME_LENGTH, MAX_EVENT_LOCATION_LENGTH, MAX_EVENT_DETAILS_LENGTH } from '../lib/constants';
-import { formatEventDate } from '../lib/utils';
-
-function formatTime(isoString: string): string {
-  return new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(isoString));
-}
-
-function toLocalDatetimeValue(isoString: string): string {
-  const d = new Date(isoString);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function derivedCallTime(eventAtLocal: string, offsetMinutes: number): string {
-  const t = new Date(new Date(eventAtLocal).getTime() - offsetMinutes * 60 * 1000);
-  return formatTime(t.toISOString());
-}
-
-const CALL_TIME_OPTIONS: { label: string; value: number | null }[] = [
-  { label: 'None', value: null },
-  { label: '15 mins before', value: 15 },
-  { label: '30 mins before', value: 30 },
-  { label: '45 mins before', value: 45 },
-  { label: '1h before', value: 60 },
-  { label: '1h 30m before', value: 90 },
-  { label: '2h before', value: 120 },
-];
-
-const DURATION_OPTIONS: { label: string; value: number | null }[] = [
-  { label: 'None', value: null },
-  { label: '30m', value: 30 },
-  { label: '45m', value: 45 },
-  { label: '1h', value: 60 },
-  { label: '1h 30m', value: 90 },
-  { label: '2h', value: 120 },
-  { label: '2h 30m', value: 150 },
-  { label: '3h', value: 180 },
-  { label: '3h 30m', value: 210 },
-  { label: '4h', value: 240 },
-];
+import { TroupeRole, EVENT_TYPE_STYLES, MAX_EVENT_NAME_LENGTH, MAX_EVENT_LOCATION_LENGTH, MAX_EVENT_DETAILS_LENGTH, CALL_TIME_OPTIONS, DURATION_OPTIONS } from '../lib/constants';
+import { formatEventDate, formatTime, toLocalDatetimeValue, deriveCallTime } from '../lib/utils';
 
 interface EventModalProps {
   event: TroupeEvent;
@@ -155,7 +114,11 @@ export function EventModal({
 
   const editDerivedCallTime =
     eventAt && callTimeOffset != null
+<<<<<<< HEAD
       ? derivedCallTime(eventAt, callTimeOffset)
+=======
+      ? deriveCallTime(eventAt, callTimeOffset)
+>>>>>>> d9d87f38a1357cb0a5d1616012543e7f669db65f
       : null;
 
   return (

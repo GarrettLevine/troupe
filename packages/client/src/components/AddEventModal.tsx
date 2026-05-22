@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CreateEventData, TroupeEvent } from '../hooks/useEvents';
-import { MAX_EVENT_NAME_LENGTH, MAX_EVENT_LOCATION_LENGTH, MAX_EVENT_DETAILS_LENGTH } from '../lib/constants';
+import { MAX_EVENT_NAME_LENGTH, MAX_EVENT_LOCATION_LENGTH, MAX_EVENT_DETAILS_LENGTH, CALL_TIME_OPTIONS, DURATION_OPTIONS } from '../lib/constants';
+import { deriveCallTime } from '../lib/utils';
 
 function getMinDatetime(): string {
   const now = new Date();
