@@ -114,11 +114,7 @@ export function EventModal({
 
   const editDerivedCallTime =
     eventAt && callTimeOffset != null
-<<<<<<< HEAD
-      ? derivedCallTime(eventAt, callTimeOffset)
-=======
       ? deriveCallTime(eventAt, callTimeOffset)
->>>>>>> d9d87f38a1357cb0a5d1616012543e7f669db65f
       : null;
 
   return (
