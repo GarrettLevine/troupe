@@ -23,6 +23,18 @@ export interface EventAttendanceData {
   currentUserAttendance: AttendanceStatus | null;
 }
 
+export const EMPTY_ATTENDANCE: EventAttendanceData = {
+  attendance: {
+    attending: [],
+    notAttending: [],
+    maybe: [],
+    late: [],
+    noResponse: [],
+    counts: { attending: 0, notAttending: 0, maybe: 0, late: 0, noResponse: 0, total: 0 },
+  },
+  currentUserAttendance: null,
+};
+
 function toChip(raw: RawChip): AttendeeChip {
   return { userId: raw.userId, displayName: raw.displayName, initials: getInitials(raw.displayName) };
 }

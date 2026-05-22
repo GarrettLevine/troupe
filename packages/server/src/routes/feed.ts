@@ -3,7 +3,7 @@ import { requireAuth } from '../middleware/requireAuth';
 import { query } from '../db';
 import { EventType, EventStatus, FeedEvent } from '../types/troupe';
 import { formatDuration, deriveCallTime } from '../lib/formatDuration';
-import { fetchAttendance, EventAttendanceData } from '../lib/attendance';
+import { fetchAttendance, EventAttendanceData, EMPTY_ATTENDANCE } from '../lib/attendance';
 
 const router = Router();
 router.use(requireAuth);
@@ -36,18 +36,6 @@ interface EventRow {
   has_badge: boolean;
   troupe_updated_at: Date;
 }
-
-const EMPTY_ATTENDANCE: EventAttendanceData = {
-  attendance: {
-    attending: [],
-    notAttending: [],
-    maybe: [],
-    late: [],
-    noResponse: [],
-    counts: { attending: 0, notAttending: 0, maybe: 0, late: 0, noResponse: 0, total: 0 },
-  },
-  currentUserAttendance: null,
-};
 
 const EVENT_SELECT = `
   e.id, e.name, e.event_type, e.event_at, e.call_time_offset, e.duration_minutes, e.status,
