@@ -25,3 +25,14 @@ export function formatTime(isoString: string): string {
     minute: '2-digit',
   }).format(new Date(isoString));
 }
+
+export function toLocalDatetimeValue(isoString: string): string {
+  const d = new Date(isoString);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export function deriveCallTime(eventAtLocal: string, offsetMinutes: number): string {
+  const t = new Date(new Date(eventAtLocal).getTime() - offsetMinutes * 60 * 1000);
+  return formatTime(t.toISOString());
+}
