@@ -121,9 +121,19 @@ A PWA for performing arts groups to manage membership, scheduling, and shows.
 - Cursors are base64 encoded strings containing event_at + id
 - Responses always include a nextCursor field (null if no more pages)
 
+### Event fields
+- call_time_offset stores minutes before event_at — never store absolute call time in the database
+- callTime in API responses is always derived: event_at - call_time_offset
+- durationFormatted is always derived server-side via formatDuration()
+- All event queries must filter WHERE deleted_at IS NULL
+- deleted_at IS NOT NULL is a soft delete — never hard delete events
+- status is an extensible text field with a CHECK constraint — add new statuses via migration, not application code changes
+
 ### Event permissions
-- Only owners and organizers can create events
-- Permission is checked in the API layer by reading the user's role from troupe_members — never trust the client
+- Owners and organizers can create and edit events
+- Only owners can delete events (soft delete)
+- Members can only view events
+- Permission is always checked server-side via troupe_members
 
 ### Media & Storage
 - All troupe badge images stored in Cloudflare R2 (bucket: troupe-badges)

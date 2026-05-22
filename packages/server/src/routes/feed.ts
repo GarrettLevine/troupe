@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/requireAuth';
 import { query } from '../db';
-import { EventType, FeedEvent } from '../types/troupe';
+import { EventType, EventStatus, FeedEvent } from '../types/troupe';
+import { formatDuration, deriveCallTime } from '../lib/formatDuration';
 
 const router = Router();
 router.use(requireAuth);
@@ -16,6 +17,55 @@ function decodeCursor(cursor: string): { eventAt: string; id: string } {
   } catch {
     throw new Error('Invalid cursor');
   }
+}
+
+interface EventRow {
+  id: string;
+  name: string;
+  event_type: EventType;
+  event_at: Date;
+  call_time_offset: number | null;
+  duration_minutes: number | null;
+  status: EventStatus;
+  location: string;
+  details: string | null;
+  created_by: string;
+  troupe_id: string;
+  troupe_name: string;
+  has_badge: boolean;
+  troupe_updated_at: Date;
+}
+
+const EVENT_SELECT = `
+  e.id, e.name, e.event_type, e.event_at, e.call_time_offset, e.duration_minutes, e.status,
+  e.location, e.details,
+  COALESCE(u.display_name, 'Unknown') AS created_by,
+  t.id AS troupe_id, t.name AS troupe_name, t.has_badge, t.updated_at AS troupe_updated_at
+`;
+
+function rowToFeedEvent(row: EventRow): FeedEvent {
+  return {
+    id: row.id,
+    name: row.name,
+    eventType: row.event_type,
+    eventAt: row.event_at.toISOString(),
+    callTime: row.call_time_offset != null
+      ? deriveCallTime(row.event_at, row.call_time_offset).toISOString()
+      : null,
+    callTimeOffset: row.call_time_offset,
+    durationMinutes: row.duration_minutes,
+    durationFormatted: row.duration_minutes != null ? formatDuration(row.duration_minutes) : null,
+    status: row.status,
+    location: row.location,
+    details: row.details,
+    createdBy: row.created_by,
+    troupe: {
+      id: row.troupe_id,
+      name: row.troupe_name,
+      hasBadge: row.has_badge,
+      updatedAt: row.troupe_updated_at.toISOString(),
+    },
+  };
 }
 
 router.get('/', async (req, res) => {
@@ -38,30 +88,18 @@ router.get('/', async (req, res) => {
       }
     }
 
-    interface EventRow {
-      id: string;
-      name: string;
-      event_type: EventType;
-      event_at: Date;
-      location: string;
-      details: string | null;
-      troupe_id: string;
-      troupe_name: string;
-      has_badge: boolean;
-      troupe_updated_at: Date;
-    }
-
     let rows: EventRow[];
 
     if (troupeId && cursorParam) {
       const { eventAt, id } = decodeCursor(cursorParam);
       rows = await query<EventRow>(
-        `SELECT e.id, e.name, e.event_type, e.event_at, e.location, e.details,
-                t.id AS troupe_id, t.name AS troupe_name, t.has_badge, t.updated_at AS troupe_updated_at
+        `SELECT ${EVENT_SELECT}
          FROM events e
          JOIN troupes t ON t.id = e.troupe_id
          JOIN troupe_members tm ON tm.troupe_id = e.troupe_id AND tm.user_id = $1
+         JOIN users u ON u.id = e.created_by
          WHERE e.event_at >= NOW()
+           AND e.deleted_at IS NULL
            AND t.deleted_at IS NULL
            AND e.troupe_id = $2::uuid
            AND (e.event_at > $3::timestamptz OR (e.event_at = $3::timestamptz AND e.id > $4::uuid))
@@ -71,12 +109,13 @@ router.get('/', async (req, res) => {
       );
     } else if (troupeId) {
       rows = await query<EventRow>(
-        `SELECT e.id, e.name, e.event_type, e.event_at, e.location, e.details,
-                t.id AS troupe_id, t.name AS troupe_name, t.has_badge, t.updated_at AS troupe_updated_at
+        `SELECT ${EVENT_SELECT}
          FROM events e
          JOIN troupes t ON t.id = e.troupe_id
          JOIN troupe_members tm ON tm.troupe_id = e.troupe_id AND tm.user_id = $1
+         JOIN users u ON u.id = e.created_by
          WHERE e.event_at >= NOW()
+           AND e.deleted_at IS NULL
            AND t.deleted_at IS NULL
            AND e.troupe_id = $2::uuid
          ORDER BY e.event_at ASC, e.id ASC
@@ -86,12 +125,13 @@ router.get('/', async (req, res) => {
     } else if (cursorParam) {
       const { eventAt, id } = decodeCursor(cursorParam);
       rows = await query<EventRow>(
-        `SELECT e.id, e.name, e.event_type, e.event_at, e.location, e.details,
-                t.id AS troupe_id, t.name AS troupe_name, t.has_badge, t.updated_at AS troupe_updated_at
+        `SELECT ${EVENT_SELECT}
          FROM events e
          JOIN troupes t ON t.id = e.troupe_id
          JOIN troupe_members tm ON tm.troupe_id = e.troupe_id AND tm.user_id = $1
+         JOIN users u ON u.id = e.created_by
          WHERE e.event_at >= NOW()
+           AND e.deleted_at IS NULL
            AND t.deleted_at IS NULL
            AND (e.event_at > $2::timestamptz OR (e.event_at = $2::timestamptz AND e.id > $3::uuid))
          ORDER BY e.event_at ASC, e.id ASC
@@ -100,12 +140,13 @@ router.get('/', async (req, res) => {
       );
     } else {
       rows = await query<EventRow>(
-        `SELECT e.id, e.name, e.event_type, e.event_at, e.location, e.details,
-                t.id AS troupe_id, t.name AS troupe_name, t.has_badge, t.updated_at AS troupe_updated_at
+        `SELECT ${EVENT_SELECT}
          FROM events e
          JOIN troupes t ON t.id = e.troupe_id
          JOIN troupe_members tm ON tm.troupe_id = e.troupe_id AND tm.user_id = $1
+         JOIN users u ON u.id = e.created_by
          WHERE e.event_at >= NOW()
+           AND e.deleted_at IS NULL
            AND t.deleted_at IS NULL
          ORDER BY e.event_at ASC, e.id ASC
          LIMIT $2`,
@@ -118,22 +159,7 @@ router.get('/', async (req, res) => {
     const lastRow = pageRows[pageRows.length - 1];
     const nextCursor = hasMore && lastRow ? encodeCursor(lastRow.event_at, lastRow.id) : null;
 
-    const events: FeedEvent[] = pageRows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      eventType: row.event_type,
-      eventAt: row.event_at.toISOString(),
-      location: row.location,
-      details: row.details,
-      troupe: {
-        id: row.troupe_id,
-        name: row.troupe_name,
-        hasBadge: row.has_badge,
-        updatedAt: row.troupe_updated_at.toISOString(),
-      },
-    }));
-
-    res.json({ events, nextCursor });
+    res.json({ events: pageRows.map(rowToFeedEvent), nextCursor });
   } catch (err) {
     console.error('[GET /events]', err);
     res.status(500).json({ error: { message: 'Internal server error' } });

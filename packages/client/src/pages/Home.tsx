@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTroupes } from '../hooks/useTroupes';
-import { useEventFeed } from '../hooks/useEventFeed';
+import { useEventFeed, FeedEvent } from '../hooks/useEventFeed';
 import { MAX_TROUPES_PER_USER } from '../lib/constants';
 import { TroupeBadge } from '../components/TroupeBadge';
 import { TroupeFilterChips } from '../components/TroupeFilterChips';
 import { FeedEventCard } from '../components/FeedEventCard';
+import { EventModal } from '../components/EventModal';
 import { CreateTroupeModal } from '../components/CreateTroupeModal';
 
 function getInitials(name: string | null): string {
@@ -24,6 +25,7 @@ export function Home() {
   const { dbUser, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedFeedEvent, setSelectedFeedEvent] = useState<FeedEvent | null>(null);
   const { troupes, loading: troupesLoading, error: troupesError, fetchTroupes, createTroupe } = useTroupes();
   const {
     events,
@@ -33,6 +35,8 @@ export function Home() {
     activeTroupeId,
     sentinelRef,
     fetchFeed,
+    updateEvent,
+    deleteEvent,
   } = useEventFeed();
   const firstName = dbUser?.display_name?.split(' ')[0] ?? 'there';
   const atLimit = troupes.length >= MAX_TROUPES_PER_USER;
@@ -220,7 +224,7 @@ export function Home() {
           ) : (
             <div className="flex flex-col gap-3">
               {events.map((event) => (
-                <FeedEventCard key={event.id} event={event} />
+                <FeedEventCard key={event.id} event={event} onClick={() => setSelectedFeedEvent(event)} />
               ))}
             </div>
           )}
@@ -234,6 +238,23 @@ export function Home() {
           )}
         </section>
       </main>
+
+      {selectedFeedEvent && (() => {
+        const troupe = troupes.find((t) => t.id === selectedFeedEvent.troupe.id);
+        const role = troupe?.role ?? 'member';
+        return (
+          <EventModal
+            event={selectedFeedEvent}
+            troupeId={selectedFeedEvent.troupe.id}
+            currentUserRole={role}
+            onClose={() => setSelectedFeedEvent(null)}
+            onUpdated={(updated) => setSelectedFeedEvent({ ...updated, troupe: selectedFeedEvent.troupe })}
+            onDeleted={() => setSelectedFeedEvent(null)}
+            onUpdate={(eventId, data) => updateEvent(selectedFeedEvent.troupe.id, eventId, data).then((e) => ({ ...e, troupe: selectedFeedEvent.troupe }))}
+            onDelete={(eventId) => deleteEvent(selectedFeedEvent.troupe.id, eventId)}
+          />
+        );
+      })()}
 
       <CreateTroupeModal
         open={modalOpen}

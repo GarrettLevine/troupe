@@ -1,5 +1,6 @@
 export type TroupeRole = 'owner' | 'organizer' | 'member';
 export type EventType = 'show' | 'rehearsal';
+export type EventStatus = 'scheduled' | 'cancelled';
 
 export interface TroupeBadges {
   thumbnail: string;
@@ -40,8 +41,13 @@ export interface TroupeEvent {
   name: string;
   eventType: EventType;
   eventAt: string;
+  callTime: string | null;
+  callTimeOffset: number | null;
+  durationMinutes: number | null;
+  durationFormatted: string | null;
   location: string;
   details: string | null;
+  status: EventStatus;
   createdBy: string;
 }
 
@@ -50,8 +56,14 @@ export interface FeedEvent {
   name: string;
   eventType: EventType;
   eventAt: string;
+  callTime: string | null;
+  callTimeOffset: number | null;
+  durationMinutes: number | null;
+  durationFormatted: string | null;
+  status: EventStatus;
   location: string;
   details: string | null;
+  createdBy: string;
   troupe: {
     id: string;
     name: string;

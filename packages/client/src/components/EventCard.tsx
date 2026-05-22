@@ -1,62 +1,57 @@
-import { useState, useRef, useEffect } from 'react';
 import { TroupeEvent } from '../hooks/useEvents';
 import { EVENT_TYPE_STYLES } from '../lib/constants';
-import { formatEventDate } from '../lib/utils';
+import { formatCompactDate, formatTime } from '../lib/utils';
 
 interface EventCardProps {
   event: TroupeEvent;
+  onClick?: () => void;
 }
 
-export function EventCard({ event }: EventCardProps) {
-  const [expanded, setExpanded] = useState(false);
-  const [isClamped, setIsClamped] = useState(false);
-  const detailsRef = useRef<HTMLParagraphElement | null>(null);
+export function EventCard({ event, onClick }: EventCardProps) {
+  const isCancelled = event.status === 'cancelled';
 
-  useEffect(() => {
-    if (!expanded) {
-      const el = detailsRef.current;
-      if (el) setIsClamped(el.scrollHeight > el.clientHeight);
-    }
-  }, [event.details, expanded]);
+  const callDurationLine = [
+    event.eventType === 'show' && event.callTime ? `Call time: ${formatTime(event.callTime)}` : null,
+    event.durationFormatted ? `Duration: ${event.durationFormatted}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-2">
-      <div className="flex items-start justify-between gap-2">
-        <h4 className="font-semibold text-gray-900 text-sm leading-snug">{event.name}</h4>
-        <span
-          className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${EVENT_TYPE_STYLES[event.eventType]}`}
-        >
-          {event.eventType === 'show' ? 'Show' : 'Rehearsal'}
-        </span>
-      </div>
-      <p className="text-xs text-gray-500">{formatEventDate(event.eventAt)}</p>
-      <p className="text-xs text-gray-500">{event.location}</p>
-      {event.details && (
-        <div>
-          <p
-            ref={detailsRef}
-            className={`text-xs text-gray-600 leading-relaxed ${!expanded ? 'line-clamp-2' : ''}`}
-          >
-            {event.details}
-          </p>
-          {isClamped && !expanded && (
-            <button
-              onClick={() => setExpanded(true)}
-              className="text-xs text-violet-600 hover:text-violet-700 mt-0.5 transition-colors"
-            >
-              Show more
-            </button>
+    <button
+      onClick={onClick}
+      className={`w-full text-left bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-2 transition-colors ${
+        onClick ? 'hover:bg-gray-50 active:bg-gray-100' : 'cursor-default'
+      } ${isCancelled ? 'opacity-50' : ''}`}
+    >
+      {/* Row 1: title + badge */}
+      <div className="flex items-start justify-between gap-3">
+        <h4 className="font-semibold text-gray-900 text-sm leading-snug flex-1 min-w-0">{event.name}</h4>
+        <div className="flex gap-1 shrink-0">
+          {isCancelled && (
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+              Cancelled
+            </span>
           )}
-          {expanded && (
-            <button
-              onClick={() => setExpanded(false)}
-              className="text-xs text-violet-600 hover:text-violet-700 mt-0.5 transition-colors"
-            >
-              Show less
-            </button>
-          )}
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${EVENT_TYPE_STYLES[event.eventType]}`}>
+            {event.eventType === 'show' ? 'Show' : 'Rehearsal'}
+          </span>
         </div>
+      </div>
+
+      {/* Row 2: call time / duration (left) + date (right) */}
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-xs text-gray-500">{callDurationLine || ' '}</span>
+        <span className="text-xs text-gray-400 whitespace-nowrap shrink-0">{formatCompactDate(event.eventAt)}</span>
+      </div>
+
+      {/* Row 3: location */}
+      <p className="text-xs text-gray-500">Location: {event.location}</p>
+
+      {/* Row 4: details */}
+      {event.details && (
+        <p className="text-xs text-gray-600">{event.details}</p>
       )}
-    </div>
+    </button>
   );
 }
