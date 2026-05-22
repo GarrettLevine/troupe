@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CreateEventData, TroupeEvent } from '../hooks/useEvents';
 import { MAX_EVENT_NAME_LENGTH, MAX_EVENT_LOCATION_LENGTH, MAX_EVENT_DETAILS_LENGTH, CALL_TIME_OPTIONS, DURATION_OPTIONS } from '../lib/constants';
-import { deriveCallTime } from '../lib/utils';
 
 function getMinDatetime(): string {
   const now = new Date();
@@ -15,29 +14,6 @@ function formatTime(date: Date): string {
     minute: '2-digit',
   }).format(date);
 }
-
-const CALL_TIME_OPTIONS: { label: string; value: number | null }[] = [
-  { label: 'None', value: null },
-  { label: '15 mins before', value: 15 },
-  { label: '30 mins before', value: 30 },
-  { label: '45 mins before', value: 45 },
-  { label: '1h before', value: 60 },
-  { label: '1h 30m before', value: 90 },
-  { label: '2h before', value: 120 },
-];
-
-const DURATION_OPTIONS: { label: string; value: number | null }[] = [
-  { label: 'None', value: null },
-  { label: '30m', value: 30 },
-  { label: '45m', value: 45 },
-  { label: '1h', value: 60 },
-  { label: '1h 30m', value: 90 },
-  { label: '2h', value: 120 },
-  { label: '2h 30m', value: 150 },
-  { label: '3h', value: 180 },
-  { label: '3h 30m', value: 210 },
-  { label: '4h', value: 240 },
-];
 
 interface AddEventModalProps {
   open: boolean;
