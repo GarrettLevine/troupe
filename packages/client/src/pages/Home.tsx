@@ -37,6 +37,7 @@ export function Home() {
     fetchFeed,
     updateEvent,
     deleteEvent,
+    updateAttendance,
   } = useEventFeed();
   const firstName = dbUser?.display_name?.split(' ')[0] ?? 'there';
   const atLimit = troupes.length >= MAX_TROUPES_PER_USER;
@@ -252,6 +253,7 @@ export function Home() {
             onDeleted={() => setSelectedFeedEvent(null)}
             onUpdate={(eventId, data) => updateEvent(selectedFeedEvent.troupe.id, eventId, data).then((e) => ({ ...e, troupe: selectedFeedEvent.troupe }))}
             onDelete={(eventId) => deleteEvent(selectedFeedEvent.troupe.id, eventId)}
+            onUpdateAttendance={(eventId, status) => updateAttendance(selectedFeedEvent.troupe.id, eventId, status).then((e) => ({ ...e, troupe: selectedFeedEvent.troupe }))}
           />
         );
       })()}

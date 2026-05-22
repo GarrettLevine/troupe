@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react';
 import { CreateEventData, TroupeEvent } from '../hooks/useEvents';
 import { MAX_EVENT_NAME_LENGTH, MAX_EVENT_LOCATION_LENGTH, MAX_EVENT_DETAILS_LENGTH, CALL_TIME_OPTIONS, DURATION_OPTIONS } from '../lib/constants';
-import { deriveCallTime } from '../lib/utils';
 
 function getMinDatetime(): string {
   const now = new Date();
   now.setSeconds(0, 0);
   return now.toISOString().slice(0, 16);
+}
+
+function formatTime(date: Date): string {
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date);
 }
 
 interface AddEventModalProps {
@@ -44,7 +50,7 @@ export function AddEventModal({ open, onClose, onCreated, onCreate }: AddEventMo
 
   const derivedCallTime =
     eventAt && callTimeOffset != null
-      ? deriveCallTime(eventAt, callTimeOffset)
+      ? formatTime(new Date(new Date(eventAt).getTime() - callTimeOffset * 60 * 1000))
       : null;
 
   const handleSubmit = async (e: React.FormEvent) => {

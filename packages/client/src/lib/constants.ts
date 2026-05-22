@@ -41,6 +41,62 @@ export const CALL_TIME_OPTIONS: { label: string; value: number | null }[] = [
   { label: '2h before', value: 120 },
 ];
 
+export type ChipColorScheme = 'green' | 'red' | 'yellow' | 'blue' | 'neutral';
+
+export const CHIP_COLOR_LABEL: Record<ChipColorScheme, string> = {
+  green: 'text-green-700',
+  red: 'text-red-700',
+  yellow: 'text-amber-700',
+  blue: 'text-blue-700',
+  neutral: 'text-gray-500',
+};
+
+export type AttendanceStatus = 'attending' | 'not_attending' | 'maybe' | 'late';
+
+export interface AttendanceOption {
+  status: AttendanceStatus;
+  label: string;
+  dotClass: string;
+  textClass: string;
+  activeClass: string;
+  inactiveClass: string;
+}
+
+export const ATTENDANCE_OPTIONS: AttendanceOption[] = [
+  {
+    status: 'attending',
+    label: 'Attending',
+    dotClass: 'bg-green-500',
+    textClass: 'text-green-700',
+    activeClass: 'bg-green-500 border-green-500 text-white',
+    inactiveClass: 'border-gray-200 text-gray-500 hover:border-green-300 hover:text-green-700',
+  },
+  {
+    status: 'maybe',
+    label: 'Maybe',
+    dotClass: 'bg-amber-500',
+    textClass: 'text-amber-700',
+    activeClass: 'bg-amber-500 border-amber-500 text-white',
+    inactiveClass: 'border-gray-200 text-gray-500 hover:border-amber-300 hover:text-amber-700',
+  },
+  {
+    status: 'late',
+    label: 'Late',
+    dotClass: 'bg-blue-500',
+    textClass: 'text-blue-700',
+    activeClass: 'bg-blue-500 border-blue-500 text-white',
+    inactiveClass: 'border-gray-200 text-gray-500 hover:border-blue-300 hover:text-blue-700',
+  },
+  {
+    status: 'not_attending',
+    label: 'Not Going',
+    dotClass: 'bg-red-400',
+    textClass: 'text-red-600',
+    activeClass: 'bg-red-400 border-red-400 text-white',
+    inactiveClass: 'border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-700',
+  },
+];
+
 export const DURATION_OPTIONS: { label: string; value: number | null }[] = [
   { label: 'None', value: null },
   { label: '30m', value: 30 },

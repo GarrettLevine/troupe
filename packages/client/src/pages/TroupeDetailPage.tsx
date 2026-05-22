@@ -39,7 +39,7 @@ export function TroupeDetailPage() {
     observer.observe(el);
     return () => observer.disconnect();
   }, [detailLoading]);
-  const { events, loading: eventsLoading, error: eventsError, sentinelRef, createEvent, updateEvent, deleteEvent, resetAndRefetch } =
+  const { events, loading: eventsLoading, error: eventsError, sentinelRef, createEvent, updateEvent, deleteEvent, updateAttendance, resetAndRefetch } =
     useEvents(troupeId!, activeTab);
 
   useEffect(() => {
@@ -228,6 +228,7 @@ export function TroupeDetailPage() {
           onDeleted={() => setSelectedEvent(null)}
           onUpdate={updateEvent}
           onDelete={deleteEvent}
+          onUpdateAttendance={updateAttendance}
         />
       )}
 
