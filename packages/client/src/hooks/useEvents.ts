@@ -6,8 +6,13 @@ export interface TroupeEvent {
   name: string;
   eventType: 'show' | 'rehearsal';
   eventAt: string;
+  callTime: string | null;
+  callTimeOffset: number | null;
+  durationMinutes: number | null;
+  durationFormatted: string | null;
   location: string;
   details: string | null;
+  status: 'scheduled' | 'cancelled';
   createdBy: string;
 }
 
@@ -15,8 +20,21 @@ export interface CreateEventData {
   name: string;
   eventType: 'show' | 'rehearsal';
   eventAt: string;
+  callTimeOffset?: number | null;
+  durationMinutes?: number | null;
   location: string;
   details?: string;
+}
+
+export interface UpdateEventData {
+  name?: string;
+  eventType?: 'show' | 'rehearsal';
+  eventAt?: string;
+  callTimeOffset?: number | null;
+  durationMinutes?: number | null;
+  location?: string;
+  details?: string | null;
+  status?: 'scheduled' | 'cancelled';
 }
 
 export function useEvents(troupeId: string, type: 'upcoming' | 'past') {
@@ -63,7 +81,6 @@ export function useEvents(troupeId: string, type: 'upcoming' | 'past') {
     [user, troupeId, type],
   );
 
-  // Reset and fetch first page when type changes
   useEffect(() => {
     setEvents([]);
     setHasMore(true);
@@ -72,7 +89,6 @@ export function useEvents(troupeId: string, type: 'upcoming' | 'past') {
     fetchPage(undefined, true);
   }, [fetchPage]);
 
-  // Infinite scroll via IntersectionObserver on sentinel element
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
@@ -109,6 +125,46 @@ export function useEvents(troupeId: string, type: 'upcoming' | 'past') {
     [user, troupeId],
   );
 
+  const updateEvent = useCallback(
+    async (eventId: string, data: UpdateEventData): Promise<TroupeEvent> => {
+      if (!user) throw new Error('Not authenticated');
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/troupes/${troupeId}/events/${eventId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const body = (await res.json()) as { error: { message: string } };
+        throw new Error(body.error?.message ?? 'Failed to update event');
+      }
+      const updated = (await res.json()) as TroupeEvent;
+      setEvents((prev) => prev.map((e) => (e.id === eventId ? updated : e)));
+      return updated;
+    },
+    [user, troupeId],
+  );
+
+  const deleteEvent = useCallback(
+    async (eventId: string): Promise<void> => {
+      if (!user) throw new Error('Not authenticated');
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/troupes/${troupeId}/events/${eventId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const body = (await res.json()) as { error: { message: string } };
+        throw new Error(body.error?.message ?? 'Failed to delete event');
+      }
+      setEvents((prev) => prev.filter((e) => e.id !== eventId));
+    },
+    [user, troupeId],
+  );
+
   const resetAndRefetch = useCallback(() => {
     setEvents([]);
     setHasMore(true);
@@ -117,5 +173,5 @@ export function useEvents(troupeId: string, type: 'upcoming' | 'past') {
     fetchPage(undefined, true);
   }, [fetchPage]);
 
-  return { events, loading, error, hasMore, sentinelRef, createEvent, resetAndRefetch };
+  return { events, loading, error, hasMore, sentinelRef, createEvent, updateEvent, deleteEvent, resetAndRefetch };
 }

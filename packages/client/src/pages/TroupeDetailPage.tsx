@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTroupeDetail } from '../hooks/useTroupeDetail';
-import { useEvents } from '../hooks/useEvents';
+import { useEvents, TroupeEvent } from '../hooks/useEvents';
 import { EventCard } from '../components/EventCard';
+import { EventModal } from '../components/EventModal';
 import { AddEventModal } from '../components/AddEventModal';
 import { EditTroupeModal } from '../components/EditTroupeModal';
 import { InviteShareModal } from '../components/InviteShareModal';
@@ -24,7 +25,21 @@ export function TroupeDetailPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
-  const { events, loading: eventsLoading, error: eventsError, sentinelRef, createEvent, resetAndRefetch } =
+  const [selectedEvent, setSelectedEvent] = useState<TroupeEvent | null>(null);
+  const [headerBadgeVisible, setHeaderBadgeVisible] = useState(false);
+  const badgeSectionRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const el = badgeSectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setHeaderBadgeVisible(!entry.isIntersecting),
+      { threshold: 0 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [detailLoading]);
+  const { events, loading: eventsLoading, error: eventsError, sentinelRef, createEvent, updateEvent, deleteEvent, resetAndRefetch } =
     useEvents(troupeId!, activeTab);
 
   useEffect(() => {
@@ -60,7 +75,7 @@ export function TroupeDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200">
+      <header className="sticky top-0 z-20 bg-white border-b border-gray-200">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
           <button
             onClick={() => navigate('/')}
@@ -68,25 +83,35 @@ export function TroupeDetailPage() {
           >
             ← Back
           </button>
-        </div>
-      </header>
-
-      <main className="max-w-2xl mx-auto px-4 py-6 flex flex-col gap-6">
-        {/* Troupe header */}
-        {!detailLoading && detail && (
-          <section className="flex items-center gap-4">
-            <TroupeBadge troupe={detail} size="large" />
-            <div className="flex flex-col gap-1 min-w-0 flex-1">
-              <h1 className="text-xl font-bold text-gray-900 truncate">{detail.name}</h1>
-            </div>
-            {canManage && (
+          {detail && headerBadgeVisible && (
+            <TroupeBadge troupe={detail} size="xs" className="shrink-0" />
+          )}
+          {detail && (
+            <span className={`font-semibold text-gray-900 text-sm truncate flex-1 ${!headerBadgeVisible ? 'sm:hidden' : ''}`}>
+              {detail.name}
+            </span>
+          )}
+          {canManage && detail && (
+            <div className="ml-auto">
               <TroupeActionsMenu
                 role={detail.currentUserRole}
                 onInvite={() => setInviteOpen(true)}
                 onEdit={() => setEditOpen(true)}
                 onDelete={() => { setDeleteError(''); setDeleteConfirmOpen(true); }}
               />
-            )}
+            </div>
+          )}
+        </div>
+      </header>
+
+      <main className="max-w-2xl mx-auto px-4 py-6 flex flex-col gap-6">
+        {/* Troupe header */}
+        {!detailLoading && detail && (
+          <section ref={badgeSectionRef} className="flex flex-col items-center sm:flex-row sm:items-center gap-4">
+            <TroupeBadge troupe={detail} size="large" />
+            <div className="hidden sm:flex flex-col gap-1 min-w-0 flex-1">
+              <h1 className="text-xl font-bold text-gray-900 truncate">{detail.name}</h1>
+            </div>
           </section>
         )}
 
@@ -178,7 +203,7 @@ export function TroupeDetailPage() {
           ) : (
             <div className="flex flex-col gap-3">
               {events.map((event) => (
-                <EventCard key={event.id} event={event} />
+                <EventCard key={event.id} event={event} onClick={() => setSelectedEvent(event)} />
               ))}
             </div>
           )}
@@ -192,6 +217,19 @@ export function TroupeDetailPage() {
           )}
         </section>
       </main>
+
+      {selectedEvent && detail && (
+        <EventModal
+          event={selectedEvent}
+          troupeId={troupeId!}
+          currentUserRole={detail.currentUserRole}
+          onClose={() => setSelectedEvent(null)}
+          onUpdated={(updated) => setSelectedEvent(updated)}
+          onDeleted={() => setSelectedEvent(null)}
+          onUpdate={updateEvent}
+          onDelete={deleteEvent}
+        />
+      )}
 
       {canCreateEvents && (
         <AddEventModal

@@ -1,13 +1,20 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { UpdateEventData } from './useEvents';
 
 export interface FeedEvent {
   id: string;
   name: string;
   eventType: 'show' | 'rehearsal';
   eventAt: string;
+  callTime: string | null;
+  callTimeOffset: number | null;
+  durationMinutes: number | null;
+  durationFormatted: string | null;
+  status: 'scheduled' | 'cancelled';
   location: string;
   details: string | null;
+  createdBy: string;
   troupe: {
     id: string;
     name: string;
@@ -88,6 +95,56 @@ export function useEventFeed() {
     }
   }, [user]);
 
+  const updateEvent = useCallback(
+    async (troupeId: string, eventId: string, data: UpdateEventData): Promise<FeedEvent> => {
+      if (!user) throw new Error('Not authenticated');
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/troupes/${troupeId}/events/${eventId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const body = (await res.json()) as { error: { message: string } };
+        throw new Error(body.error?.message ?? 'Failed to update event');
+      }
+      const updatedFields = (await res.json()) as Omit<FeedEvent, 'troupe'>;
+      let merged: FeedEvent | null = null;
+      setEvents((prev) =>
+        prev.map((e) => {
+          if (e.id === eventId) {
+            merged = { ...updatedFields, troupe: e.troupe };
+            return merged;
+          }
+          return e;
+        }),
+      );
+      if (!merged) throw new Error('Event not found in feed');
+      return merged;
+    },
+    [user],
+  );
+
+  const deleteEvent = useCallback(
+    async (troupeId: string, eventId: string): Promise<void> => {
+      if (!user) throw new Error('Not authenticated');
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/troupes/${troupeId}/events/${eventId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const body = (await res.json()) as { error: { message: string } };
+        throw new Error(body.error?.message ?? 'Failed to delete event');
+      }
+      setEvents((prev) => prev.filter((e) => e.id !== eventId));
+    },
+    [user],
+  );
+
   useEffect(() => {
     fetchFeed();
   }, [fetchFeed]);
@@ -107,5 +164,5 @@ export function useEventFeed() {
     return () => observer.disconnect();
   }, [fetchMore]);
 
-  return { events, loading, loadingMore, error, activeTroupeId, sentinelRef, fetchFeed, fetchMore };
+  return { events, loading, loadingMore, error, activeTroupeId, sentinelRef, fetchFeed, fetchMore, updateEvent, deleteEvent };
 }

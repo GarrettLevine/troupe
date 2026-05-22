@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/requireAuth';
 import { query } from '../db';
-import { EventType, TroupeEvent, TroupeRole } from '../types/troupe';
+import { EventType, EventStatus, TroupeEvent, TroupeRole } from '../types/troupe';
+import { formatDuration, deriveCallTime } from '../lib/formatDuration';
 
 const router = Router({ mergeParams: true });
 router.use(requireAuth);
@@ -34,6 +35,44 @@ async function getMembership(
   return { exists: true, role: memberRows[0]?.role ?? null };
 }
 
+interface EventRow {
+  id: string;
+  name: string;
+  event_type: EventType;
+  event_at: Date;
+  call_time_offset: number | null;
+  duration_minutes: number | null;
+  location: string;
+  details: string | null;
+  status: EventStatus;
+  created_by: string;
+}
+
+function rowToEvent(row: EventRow): TroupeEvent {
+  return {
+    id: row.id,
+    name: row.name,
+    eventType: row.event_type,
+    eventAt: row.event_at.toISOString(),
+    callTime: row.call_time_offset != null
+      ? deriveCallTime(row.event_at, row.call_time_offset).toISOString()
+      : null,
+    callTimeOffset: row.call_time_offset,
+    durationMinutes: row.duration_minutes,
+    durationFormatted: row.duration_minutes != null ? formatDuration(row.duration_minutes) : null,
+    location: row.location,
+    details: row.details,
+    status: row.status,
+    createdBy: row.created_by,
+  };
+}
+
+const EVENT_SELECT = `
+  e.id, e.name, e.event_type, e.event_at, e.call_time_offset, e.duration_minutes,
+  e.location, e.details, e.status,
+  COALESCE(u.display_name, 'Unknown') AS created_by
+`;
+
 router.get('/:troupeId/events', async (req, res) => {
   try {
     const { troupeId } = req.params;
@@ -54,27 +93,17 @@ router.get('/:troupeId/events', async (req, res) => {
     const limit = Math.min(isNaN(limitParam) ? 10 : limitParam, 10);
     const cursorParam = req.query.cursor as string | undefined;
 
-    interface EventRow {
-      id: string;
-      name: string;
-      event_type: EventType;
-      event_at: Date;
-      location: string;
-      details: string | null;
-      created_by: string;
-    }
-
     let rows: EventRow[];
 
     if (type === 'upcoming') {
       if (cursorParam) {
         const { eventAt, id } = decodeCursor(cursorParam);
         rows = await query<EventRow>(
-          `SELECT e.id, e.name, e.event_type, e.event_at, e.location, e.details,
-                  COALESCE(u.display_name, 'Unknown') AS created_by
+          `SELECT ${EVENT_SELECT}
            FROM events e
            JOIN users u ON u.id = e.created_by
            WHERE e.troupe_id = $1
+             AND e.deleted_at IS NULL
              AND e.event_at >= NOW()
              AND (e.event_at > $2::timestamptz OR (e.event_at = $2::timestamptz AND e.id > $3::uuid))
            ORDER BY e.event_at ASC, e.id ASC
@@ -83,11 +112,12 @@ router.get('/:troupeId/events', async (req, res) => {
         );
       } else {
         rows = await query<EventRow>(
-          `SELECT e.id, e.name, e.event_type, e.event_at, e.location, e.details,
-                  COALESCE(u.display_name, 'Unknown') AS created_by
+          `SELECT ${EVENT_SELECT}
            FROM events e
            JOIN users u ON u.id = e.created_by
-           WHERE e.troupe_id = $1 AND e.event_at >= NOW()
+           WHERE e.troupe_id = $1
+             AND e.deleted_at IS NULL
+             AND e.event_at >= NOW()
            ORDER BY e.event_at ASC, e.id ASC
            LIMIT $2`,
           [troupeId, limit + 1],
@@ -97,11 +127,11 @@ router.get('/:troupeId/events', async (req, res) => {
       if (cursorParam) {
         const { eventAt, id } = decodeCursor(cursorParam);
         rows = await query<EventRow>(
-          `SELECT e.id, e.name, e.event_type, e.event_at, e.location, e.details,
-                  COALESCE(u.display_name, 'Unknown') AS created_by
+          `SELECT ${EVENT_SELECT}
            FROM events e
            JOIN users u ON u.id = e.created_by
            WHERE e.troupe_id = $1
+             AND e.deleted_at IS NULL
              AND e.event_at < NOW()
              AND (e.event_at < $2::timestamptz OR (e.event_at = $2::timestamptz AND e.id < $3::uuid))
            ORDER BY e.event_at DESC, e.id DESC
@@ -110,11 +140,12 @@ router.get('/:troupeId/events', async (req, res) => {
         );
       } else {
         rows = await query<EventRow>(
-          `SELECT e.id, e.name, e.event_type, e.event_at, e.location, e.details,
-                  COALESCE(u.display_name, 'Unknown') AS created_by
+          `SELECT ${EVENT_SELECT}
            FROM events e
            JOIN users u ON u.id = e.created_by
-           WHERE e.troupe_id = $1 AND e.event_at < NOW()
+           WHERE e.troupe_id = $1
+             AND e.deleted_at IS NULL
+             AND e.event_at < NOW()
            ORDER BY e.event_at DESC, e.id DESC
            LIMIT $2`,
           [troupeId, limit + 1],
@@ -127,17 +158,7 @@ router.get('/:troupeId/events', async (req, res) => {
     const lastRow = pageRows[pageRows.length - 1];
     const nextCursor = hasMore && lastRow ? encodeCursor(lastRow.event_at, lastRow.id) : null;
 
-    const events: TroupeEvent[] = pageRows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      eventType: row.event_type,
-      eventAt: row.event_at.toISOString(),
-      location: row.location,
-      details: row.details,
-      createdBy: row.created_by,
-    }));
-
-    res.json({ events, nextCursor });
+    res.json({ events: pageRows.map(rowToEvent), nextCursor });
   } catch (err) {
     console.error('[GET /troupes/:troupeId/events]', err);
     res.status(500).json({ error: { message: 'Internal server error' } });
@@ -163,10 +184,12 @@ router.post('/:troupeId/events', async (req, res) => {
       return;
     }
 
-    const { name, eventType, eventAt, location, details } = req.body as {
+    const { name, eventType, eventAt, callTimeOffset, durationMinutes, location, details } = req.body as {
       name?: unknown;
       eventType?: unknown;
       eventAt?: unknown;
+      callTimeOffset?: unknown;
+      durationMinutes?: unknown;
       location?: unknown;
       details?: unknown;
     };
@@ -196,6 +219,18 @@ router.post('/:troupeId/events', async (req, res) => {
       res.status(400).json({ error: { message: 'eventAt must be in the future' } });
       return;
     }
+    if (callTimeOffset !== undefined && callTimeOffset !== null) {
+      if (typeof callTimeOffset !== 'number' || !Number.isInteger(callTimeOffset) || callTimeOffset <= 0 || callTimeOffset > 480) {
+        res.status(400).json({ error: { message: 'callTimeOffset must be a positive integer up to 480' } });
+        return;
+      }
+    }
+    if (durationMinutes !== undefined && durationMinutes !== null) {
+      if (typeof durationMinutes !== 'number' || !Number.isInteger(durationMinutes) || durationMinutes <= 0 || durationMinutes > 1440) {
+        res.status(400).json({ error: { message: 'durationMinutes must be a positive integer up to 1440' } });
+        return;
+      }
+    }
     if (!location || typeof location !== 'string' || location.trim().length === 0) {
       res.status(400).json({ error: { message: 'location is required' } });
       return;
@@ -214,38 +249,229 @@ router.post('/:troupeId/events', async (req, res) => {
         ? details.trim()
         : null;
 
-    interface EventRow {
-      id: string;
-      name: string;
-      event_type: EventType;
-      event_at: Date;
-      location: string;
-      details: string | null;
-    }
-
     const [event] = await query<EventRow>(
-      `INSERT INTO events (troupe_id, created_by, name, event_type, event_at, location, details)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, name, event_type, event_at, location, details`,
-      [troupeId, userId, name.trim(), eventType, eventDate.toISOString(), location.trim(), trimmedDetails],
+      `INSERT INTO events (troupe_id, created_by, name, event_type, event_at, call_time_offset, duration_minutes, location, details)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING id, name, event_type, event_at, call_time_offset, duration_minutes, location, details, status,
+                 (SELECT COALESCE(display_name, 'Unknown') FROM users WHERE id = $2) AS created_by`,
+      [
+        troupeId,
+        userId,
+        name.trim(),
+        eventType,
+        eventDate.toISOString(),
+        callTimeOffset ?? null,
+        durationMinutes ?? null,
+        location.trim(),
+        trimmedDetails,
+      ],
     );
 
-    interface UserRow { display_name: string | null }
-    const [creator] = await query<UserRow>('SELECT display_name FROM users WHERE id = $1', [userId]);
-
-    const response: TroupeEvent = {
-      id: event.id,
-      name: event.name,
-      eventType: event.event_type,
-      eventAt: event.event_at.toISOString(),
-      location: event.location,
-      details: event.details,
-      createdBy: creator.display_name ?? 'Unknown',
-    };
-
-    res.status(201).json(response);
+    res.status(201).json(rowToEvent(event));
   } catch (err) {
     console.error('[POST /troupes/:troupeId/events]', err);
+    res.status(500).json({ error: { message: 'Internal server error' } });
+  }
+});
+
+router.patch('/:troupeId/events/:eventId', async (req, res) => {
+  try {
+    const { troupeId, eventId } = req.params;
+    const userId = req.user!.id;
+
+    const { exists, role } = await getMembership(troupeId, userId);
+    if (!exists) {
+      res.status(404).json({ error: { message: 'Troupe not found' } });
+      return;
+    }
+    if (!role) {
+      res.status(403).json({ error: { message: 'You are not a member of this troupe' } });
+      return;
+    }
+    if (role === 'member') {
+      res.status(403).json({ error: { message: 'Only owners and organizers can edit events' } });
+      return;
+    }
+
+    interface EventCheck { id: string }
+    const existing = await query<EventCheck>(
+      'SELECT id FROM events WHERE id = $1 AND troupe_id = $2 AND deleted_at IS NULL',
+      [eventId, troupeId],
+    );
+    if (existing.length === 0) {
+      res.status(404).json({ error: { message: 'Event not found' } });
+      return;
+    }
+
+    const body = req.body as Record<string, unknown>;
+    const setClauses: string[] = [];
+    const params: unknown[] = [];
+
+    const addField = (col: string, value: unknown) => {
+      params.push(value);
+      setClauses.push(`${col} = $${params.length}`);
+    };
+
+    if ('name' in body) {
+      const name = body.name;
+      if (!name || typeof name !== 'string' || name.trim().length === 0) {
+        res.status(400).json({ error: { message: 'name must not be empty' } });
+        return;
+      }
+      if (name.trim().length > 150) {
+        res.status(400).json({ error: { message: 'name must be 150 characters or fewer' } });
+        return;
+      }
+      addField('name', name.trim());
+    }
+
+    if ('eventType' in body) {
+      const eventType = body.eventType;
+      if (eventType !== 'show' && eventType !== 'rehearsal') {
+        res.status(400).json({ error: { message: 'eventType must be "show" or "rehearsal"' } });
+        return;
+      }
+      addField('event_type', eventType);
+    }
+
+    if ('eventAt' in body) {
+      const eventAt = body.eventAt;
+      if (!eventAt || typeof eventAt !== 'string') {
+        res.status(400).json({ error: { message: 'eventAt must be a valid ISO 8601 date' } });
+        return;
+      }
+      const eventDate = new Date(eventAt);
+      if (isNaN(eventDate.getTime())) {
+        res.status(400).json({ error: { message: 'eventAt must be a valid ISO 8601 date' } });
+        return;
+      }
+      if (eventDate <= new Date()) {
+        res.status(400).json({ error: { message: 'eventAt must not be in the past' } });
+        return;
+      }
+      addField('event_at', eventDate.toISOString());
+    }
+
+    if ('callTimeOffset' in body) {
+      const callTimeOffset = body.callTimeOffset;
+      if (callTimeOffset !== null) {
+        if (typeof callTimeOffset !== 'number' || !Number.isInteger(callTimeOffset) || callTimeOffset <= 0 || callTimeOffset > 480) {
+          res.status(400).json({ error: { message: 'callTimeOffset must be a positive integer up to 480' } });
+          return;
+        }
+      }
+      addField('call_time_offset', callTimeOffset);
+    }
+
+    if ('durationMinutes' in body) {
+      const durationMinutes = body.durationMinutes;
+      if (durationMinutes !== null) {
+        if (typeof durationMinutes !== 'number' || !Number.isInteger(durationMinutes) || durationMinutes <= 0 || durationMinutes > 1440) {
+          res.status(400).json({ error: { message: 'durationMinutes must be a positive integer up to 1440' } });
+          return;
+        }
+      }
+      addField('duration_minutes', durationMinutes);
+    }
+
+    if ('location' in body) {
+      const location = body.location;
+      if (!location || typeof location !== 'string' || location.trim().length === 0) {
+        res.status(400).json({ error: { message: 'location must not be empty' } });
+        return;
+      }
+      if (location.trim().length > 200) {
+        res.status(400).json({ error: { message: 'location must be 200 characters or fewer' } });
+        return;
+      }
+      addField('location', location.trim());
+    }
+
+    if ('details' in body) {
+      const details = body.details;
+      if (details !== null) {
+        if (typeof details !== 'string') {
+          res.status(400).json({ error: { message: 'details must be a string or null' } });
+          return;
+        }
+        if (details.trim().length > 1000) {
+          res.status(400).json({ error: { message: 'details must be 1000 characters or fewer' } });
+          return;
+        }
+        addField('details', details.trim() || null);
+      } else {
+        addField('details', null);
+      }
+    }
+
+    if ('status' in body) {
+      const status = body.status;
+      if (status !== 'scheduled' && status !== 'cancelled') {
+        res.status(400).json({ error: { message: 'status must be "scheduled" or "cancelled"' } });
+        return;
+      }
+      addField('status', status);
+    }
+
+    if (setClauses.length === 0) {
+      res.status(400).json({ error: { message: 'No fields to update' } });
+      return;
+    }
+
+    params.push(eventId, troupeId);
+    const idParam = params.length - 1;
+    const troupeParam = params.length;
+
+    const [updated] = await query<EventRow>(
+      `UPDATE events SET ${setClauses.join(', ')}
+       WHERE id = $${idParam} AND troupe_id = $${troupeParam} AND deleted_at IS NULL
+       RETURNING id, name, event_type, event_at, call_time_offset, duration_minutes, location, details, status,
+                 (SELECT COALESCE(display_name, 'Unknown') FROM users WHERE id = events.created_by) AS created_by`,
+      params,
+    );
+
+    res.json(rowToEvent(updated));
+  } catch (err) {
+    console.error('[PATCH /troupes/:troupeId/events/:eventId]', err);
+    res.status(500).json({ error: { message: 'Internal server error' } });
+  }
+});
+
+router.delete('/:troupeId/events/:eventId', async (req, res) => {
+  try {
+    const { troupeId, eventId } = req.params;
+    const userId = req.user!.id;
+
+    const { exists, role } = await getMembership(troupeId, userId);
+    if (!exists) {
+      res.status(404).json({ error: { message: 'Troupe not found' } });
+      return;
+    }
+    if (!role) {
+      res.status(403).json({ error: { message: 'You are not a member of this troupe' } });
+      return;
+    }
+    if (role !== 'owner') {
+      res.status(403).json({ error: { message: 'Only the owner can delete events' } });
+      return;
+    }
+
+    interface DeletedRow { id: string }
+    const rows = await query<DeletedRow>(
+      `UPDATE events SET deleted_at = NOW()
+       WHERE id = $1 AND troupe_id = $2 AND deleted_at IS NULL
+       RETURNING id`,
+      [eventId, troupeId],
+    );
+
+    if (rows.length === 0) {
+      res.status(404).json({ error: { message: 'Event not found' } });
+      return;
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[DELETE /troupes/:troupeId/events/:eventId]', err);
     res.status(500).json({ error: { message: 'Internal server error' } });
   }
 });

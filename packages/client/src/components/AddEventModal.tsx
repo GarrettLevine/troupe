@@ -8,6 +8,36 @@ function getMinDatetime(): string {
   return now.toISOString().slice(0, 16);
 }
 
+function formatTime(date: Date): string {
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date);
+}
+
+const CALL_TIME_OPTIONS: { label: string; value: number | null }[] = [
+  { label: 'None', value: null },
+  { label: '15 mins before', value: 15 },
+  { label: '30 mins before', value: 30 },
+  { label: '45 mins before', value: 45 },
+  { label: '1h before', value: 60 },
+  { label: '1h 30m before', value: 90 },
+  { label: '2h before', value: 120 },
+];
+
+const DURATION_OPTIONS: { label: string; value: number | null }[] = [
+  { label: 'None', value: null },
+  { label: '30m', value: 30 },
+  { label: '45m', value: 45 },
+  { label: '1h', value: 60 },
+  { label: '1h 30m', value: 90 },
+  { label: '2h', value: 120 },
+  { label: '2h 30m', value: 150 },
+  { label: '3h', value: 180 },
+  { label: '3h 30m', value: 210 },
+  { label: '4h', value: 240 },
+];
+
 interface AddEventModalProps {
   open: boolean;
   onClose: () => void;
@@ -19,6 +49,8 @@ export function AddEventModal({ open, onClose, onCreated, onCreate }: AddEventMo
   const [name, setName] = useState('');
   const [eventType, setEventType] = useState<'show' | 'rehearsal'>('rehearsal');
   const [eventAt, setEventAt] = useState('');
+  const [callTimeOffset, setCallTimeOffset] = useState<number | null>(null);
+  const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
   const [location, setLocation] = useState('');
   const [details, setDetails] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -29,6 +61,8 @@ export function AddEventModal({ open, onClose, onCreated, onCreate }: AddEventMo
       setName('');
       setEventType('rehearsal');
       setEventAt('');
+      setCallTimeOffset(null);
+      setDurationMinutes(null);
       setLocation('');
       setDetails('');
       setErrors({});
@@ -36,6 +70,11 @@ export function AddEventModal({ open, onClose, onCreated, onCreate }: AddEventMo
   }, [open]);
 
   if (!open) return null;
+
+  const derivedCallTime =
+    eventAt && callTimeOffset != null
+      ? formatTime(new Date(new Date(eventAt).getTime() - callTimeOffset * 60 * 1000))
+      : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +93,8 @@ export function AddEventModal({ open, onClose, onCreated, onCreate }: AddEventMo
         name: name.trim(),
         eventType,
         eventAt: new Date(eventAt).toISOString(),
+        callTimeOffset,
+        durationMinutes,
         location: location.trim(),
         details: details.trim() || undefined,
       });
@@ -95,7 +136,7 @@ export function AddEventModal({ open, onClose, onCreated, onCreate }: AddEventMo
                 <button
                   key={t}
                   type="button"
-                  onClick={() => setEventType(t)}
+                  onClick={() => { setEventType(t); if (t === 'rehearsal') setCallTimeOffset(null); }}
                   className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
                     eventType === t ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                   }`}
@@ -116,6 +157,45 @@ export function AddEventModal({ open, onClose, onCreated, onCreate }: AddEventMo
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             />
             {errors.eventAt && <p className="text-xs text-red-600 mt-1">{errors.eventAt}</p>}
+          </div>
+
+          {eventType === 'show' && (
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">
+              Call time <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <select
+              value={callTimeOffset ?? ''}
+              onChange={(e) => setCallTimeOffset(e.target.value === '' ? null : Number(e.target.value))}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent bg-white"
+            >
+              {CALL_TIME_OPTIONS.map((opt) => (
+                <option key={opt.label} value={opt.value ?? ''}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            {derivedCallTime && (
+              <p className="text-xs text-gray-500 mt-1">Cast called at {derivedCallTime}</p>
+            )}
+          </div>
+          )}
+
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">
+              Duration <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <select
+              value={durationMinutes ?? ''}
+              onChange={(e) => setDurationMinutes(e.target.value === '' ? null : Number(e.target.value))}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent bg-white"
+            >
+              {DURATION_OPTIONS.map((opt) => (
+                <option key={opt.label} value={opt.value ?? ''}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
