@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { AttendanceStatus } from '../lib/constants';
 
-export type AttendanceStatus = 'attending' | 'not_attending' | 'maybe' | 'late';
+export type { AttendanceStatus };
 
 export interface AttendeeChip {
   userId: string;
