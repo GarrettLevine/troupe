@@ -48,6 +48,7 @@ router.get('/', async (req, res) => {
       troupe_id: string;
       troupe_name: string;
       has_badge: boolean;
+      troupe_updated_at: Date;
     }
 
     let rows: EventRow[];
@@ -56,7 +57,7 @@ router.get('/', async (req, res) => {
       const { eventAt, id } = decodeCursor(cursorParam);
       rows = await query<EventRow>(
         `SELECT e.id, e.name, e.event_type, e.event_at, e.location, e.details,
-                t.id AS troupe_id, t.name AS troupe_name, t.has_badge
+                t.id AS troupe_id, t.name AS troupe_name, t.has_badge, t.updated_at AS troupe_updated_at
          FROM events e
          JOIN troupes t ON t.id = e.troupe_id
          JOIN troupe_members tm ON tm.troupe_id = e.troupe_id AND tm.user_id = $1
@@ -71,7 +72,7 @@ router.get('/', async (req, res) => {
     } else if (troupeId) {
       rows = await query<EventRow>(
         `SELECT e.id, e.name, e.event_type, e.event_at, e.location, e.details,
-                t.id AS troupe_id, t.name AS troupe_name, t.has_badge
+                t.id AS troupe_id, t.name AS troupe_name, t.has_badge, t.updated_at AS troupe_updated_at
          FROM events e
          JOIN troupes t ON t.id = e.troupe_id
          JOIN troupe_members tm ON tm.troupe_id = e.troupe_id AND tm.user_id = $1
@@ -86,7 +87,7 @@ router.get('/', async (req, res) => {
       const { eventAt, id } = decodeCursor(cursorParam);
       rows = await query<EventRow>(
         `SELECT e.id, e.name, e.event_type, e.event_at, e.location, e.details,
-                t.id AS troupe_id, t.name AS troupe_name, t.has_badge
+                t.id AS troupe_id, t.name AS troupe_name, t.has_badge, t.updated_at AS troupe_updated_at
          FROM events e
          JOIN troupes t ON t.id = e.troupe_id
          JOIN troupe_members tm ON tm.troupe_id = e.troupe_id AND tm.user_id = $1
@@ -100,7 +101,7 @@ router.get('/', async (req, res) => {
     } else {
       rows = await query<EventRow>(
         `SELECT e.id, e.name, e.event_type, e.event_at, e.location, e.details,
-                t.id AS troupe_id, t.name AS troupe_name, t.has_badge
+                t.id AS troupe_id, t.name AS troupe_name, t.has_badge, t.updated_at AS troupe_updated_at
          FROM events e
          JOIN troupes t ON t.id = e.troupe_id
          JOIN troupe_members tm ON tm.troupe_id = e.troupe_id AND tm.user_id = $1
@@ -128,6 +129,7 @@ router.get('/', async (req, res) => {
         id: row.troupe_id,
         name: row.troupe_name,
         hasBadge: row.has_badge,
+        updatedAt: row.troupe_updated_at.toISOString(),
       },
     }));
 

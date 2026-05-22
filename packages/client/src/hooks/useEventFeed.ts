@@ -12,6 +12,7 @@ export interface FeedEvent {
     id: string;
     name: string;
     hasBadge: boolean;
+    updatedAt: string;
   };
 }
 
