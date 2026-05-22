@@ -41,6 +41,16 @@ export const CALL_TIME_OPTIONS: { label: string; value: number | null }[] = [
   { label: '2h before', value: 120 },
 ];
 
+export type ChipColorScheme = 'green' | 'red' | 'yellow' | 'blue' | 'neutral';
+
+export const CHIP_COLOR_LABEL: Record<ChipColorScheme, string> = {
+  green: 'text-green-700',
+  red: 'text-red-700',
+  yellow: 'text-amber-700',
+  blue: 'text-blue-700',
+  neutral: 'text-gray-500',
+};
+
 export type AttendanceStatus = 'attending' | 'not_attending' | 'maybe' | 'late';
 
 export interface AttendanceOption {

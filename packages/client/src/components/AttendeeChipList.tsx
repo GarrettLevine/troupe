@@ -1,5 +1,5 @@
 import { AttendeeChip } from '../hooks/useEvents';
-import { BRAND_COLORS } from '../lib/constants';
+import { BRAND_COLORS, ChipColorScheme, CHIP_COLOR_LABEL } from '../lib/constants';
 
 function hashColor(id: string): string {
   let hash = 0;
@@ -9,18 +9,10 @@ function hashColor(id: string): string {
   return BRAND_COLORS[hash];
 }
 
-const COLOR_LABEL: Record<'green' | 'red' | 'yellow' | 'blue' | 'neutral', string> = {
-  green: 'text-green-700',
-  red: 'text-red-700',
-  yellow: 'text-amber-700',
-  blue: 'text-blue-700',
-  neutral: 'text-gray-500',
-};
-
 interface AttendeeChipListProps {
   label: string;
   attendees: AttendeeChip[];
-  colorScheme: 'green' | 'red' | 'yellow' | 'blue' | 'neutral';
+  colorScheme: ChipColorScheme;
   maxVisible?: number;
 }
 
@@ -32,7 +24,7 @@ export function AttendeeChipList({ label, attendees, colorScheme, maxVisible = 8
 
   return (
     <div className="flex flex-col gap-1.5">
-      <p className={`text-xs font-semibold ${COLOR_LABEL[colorScheme]}`}>
+      <p className={`text-xs font-semibold ${CHIP_COLOR_LABEL[colorScheme]}`}>
         {label} · {attendees.length}
       </p>
       <div className="flex flex-wrap gap-1.5">
