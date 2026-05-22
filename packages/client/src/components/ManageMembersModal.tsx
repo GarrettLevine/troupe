@@ -2,23 +2,14 @@ import { useEffect, useState, useRef } from 'react';
 import { useMembers, ManagedMember } from '../hooks/useMembers';
 import { ConfirmRemoveDialog } from './ConfirmRemoveDialog';
 import { ConfirmTransferDialog } from './ConfirmTransferDialog';
-import { BRAND_COLORS, ROLE_STYLES } from '../lib/constants';
+import { hashColor, ROLE_STYLES } from '../lib/constants';
+import { formatMonthYear } from '../lib/utils';
 
 interface Props {
   troupeId: string;
   currentUserId: string;
   onClose: () => void;
   onOwnershipTransferred: () => void;
-}
-
-function hashColor(id: string): string {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-  return BRAND_COLORS[hash % BRAND_COLORS.length];
-}
-
-function formatJoined(iso: string): string {
-  return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(new Date(iso));
 }
 
 type ActionMenu = { userId: string; open: boolean };
@@ -132,7 +123,7 @@ export function ManageMembersModal({ troupeId, currentUserId, onClose, onOwnersh
               {member.role}
             </span>
           </div>
-          <p className="text-xs text-gray-400">Joined {formatJoined(member.joinedAt)}</p>
+          <p className="text-xs text-gray-400">Joined {formatMonthYear(member.joinedAt)}</p>
         </div>
         {showMenu && (
           <div className="relative shrink-0">
