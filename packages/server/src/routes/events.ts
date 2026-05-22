@@ -3,7 +3,7 @@ import { requireAuth } from '../middleware/requireAuth';
 import { query } from '../db';
 import { EventType, EventStatus, TroupeEvent, TroupeRole, AttendanceStatus } from '../types/troupe';
 import { formatDuration, deriveCallTime } from '../lib/formatDuration';
-import { fetchAttendance, EventAttendanceData, EMPTY_ATTENDANCE } from '../lib/attendance';
+import { fetchAttendance, EventAttendanceData, EMPTY_ATTENDANCE, VALID_ATTENDANCE_STATUSES } from '../lib/attendance';
 
 const router = Router({ mergeParams: true });
 router.use(requireAuth);
@@ -486,8 +486,6 @@ router.delete('/:troupeId/events/:eventId', async (req, res) => {
   }
 });
 
-const VALID_STATUSES: AttendanceStatus[] = ['attending', 'not_attending', 'maybe', 'late'];
-
 router.put('/:troupeId/events/:eventId/attendance', async (req, res) => {
   try {
     const { troupeId, eventId } = req.params;
@@ -504,7 +502,7 @@ router.put('/:troupeId/events/:eventId/attendance', async (req, res) => {
     }
 
     const { status } = req.body as { status?: unknown };
-    if (status !== null && status !== undefined && !VALID_STATUSES.includes(status as AttendanceStatus)) {
+    if (status !== null && status !== undefined && !VALID_ATTENDANCE_STATUSES.includes(status as AttendanceStatus)) {
       res.status(400).json({ error: { message: 'status must be attending, not_attending, maybe, late, or null' } });
       return;
     }

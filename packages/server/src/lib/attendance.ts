@@ -23,6 +23,8 @@ export interface EventAttendanceData {
   currentUserAttendance: AttendanceStatus | null;
 }
 
+export const VALID_ATTENDANCE_STATUSES: AttendanceStatus[] = ['attending', 'not_attending', 'maybe', 'late'];
+
 export const EMPTY_ATTENDANCE: EventAttendanceData = {
   attendance: {
     attending: [],
