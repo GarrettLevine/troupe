@@ -3,6 +3,7 @@ import { requireAuth } from '../middleware/requireAuth';
 import { query } from '../db';
 import { EventType, EventStatus, FeedEvent } from '../types/troupe';
 import { formatDuration, deriveCallTime } from '../lib/formatDuration';
+import { fetchAttendance, EventAttendanceData } from '../lib/attendance';
 
 const router = Router();
 router.use(requireAuth);
@@ -36,6 +37,18 @@ interface EventRow {
   troupe_updated_at: Date;
 }
 
+const EMPTY_ATTENDANCE: EventAttendanceData = {
+  attendance: {
+    attending: [],
+    notAttending: [],
+    maybe: [],
+    late: [],
+    noResponse: [],
+    counts: { attending: 0, notAttending: 0, maybe: 0, late: 0, noResponse: 0, total: 0 },
+  },
+  currentUserAttendance: null,
+};
+
 const EVENT_SELECT = `
   e.id, e.name, e.event_type, e.event_at, e.call_time_offset, e.duration_minutes, e.status,
   e.location, e.details,
@@ -43,7 +56,7 @@ const EVENT_SELECT = `
   t.id AS troupe_id, t.name AS troupe_name, t.has_badge, t.updated_at AS troupe_updated_at
 `;
 
-function rowToFeedEvent(row: EventRow): FeedEvent {
+function rowToFeedEvent(row: EventRow, attendanceData: EventAttendanceData): FeedEvent {
   return {
     id: row.id,
     name: row.name,
@@ -59,6 +72,8 @@ function rowToFeedEvent(row: EventRow): FeedEvent {
     location: row.location,
     details: row.details,
     createdBy: row.created_by,
+    attendance: attendanceData.attendance,
+    currentUserAttendance: attendanceData.currentUserAttendance,
     troupe: {
       id: row.troupe_id,
       name: row.troupe_name,
@@ -159,7 +174,12 @@ router.get('/', async (req, res) => {
     const lastRow = pageRows[pageRows.length - 1];
     const nextCursor = hasMore && lastRow ? encodeCursor(lastRow.event_at, lastRow.id) : null;
 
-    res.json({ events: pageRows.map(rowToFeedEvent), nextCursor });
+    const attendanceMap = await fetchAttendance(pageRows.map((r) => r.id), userId);
+
+    res.json({
+      events: pageRows.map((r) => rowToFeedEvent(r, attendanceMap.get(r.id) ?? EMPTY_ATTENDANCE)),
+      nextCursor,
+    });
   } catch (err) {
     console.error('[GET /events]', err);
     res.status(500).json({ error: { message: 'Internal server error' } });
