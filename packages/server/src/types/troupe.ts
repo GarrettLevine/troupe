@@ -120,3 +120,21 @@ export interface InvitePreview {
   };
   expiresAt: string;
 }
+
+export interface ManagedMember {
+  userId: string;
+  displayName: string;
+  initials: string;
+  role: TroupeRole;
+  joinedAt: string;
+}
+
+export interface MemberListResponse {
+  members: ManagedMember[];
+  totalCount: number;
+}
+
+export interface TransferOwnershipResponse {
+  previousOwner: { userId: string; displayName: string; role: 'organizer' };
+  newOwner: { userId: string; displayName: string; role: 'owner' };
+}
