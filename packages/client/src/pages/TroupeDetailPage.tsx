@@ -7,21 +7,25 @@ import { EventModal } from '../components/EventModal';
 import { AddEventModal } from '../components/AddEventModal';
 import { EditTroupeModal } from '../components/EditTroupeModal';
 import { InviteShareModal } from '../components/InviteShareModal';
+import { ManageMembersModal } from '../components/ManageMembersModal';
 import { TroupeActionsMenu } from '../components/TroupeActionsMenu';
 import { TroupeBadge } from '../components/TroupeBadge';
 import { ROLE_STYLES } from '../lib/constants';
+import { useAuth } from '../contexts/AuthContext';
 
 type TabType = 'upcoming' | 'past';
 
 export function TroupeDetailPage() {
   const { troupeId } = useParams<{ troupeId: string }>();
   const navigate = useNavigate();
+  const { dbUser } = useAuth();
   const { detail, loading: detailLoading, error: detailError, fetchTroupeDetail, updateDetail, deleteTroupe } =
     useTroupeDetail();
   const [activeTab, setActiveTab] = useState<TabType>('upcoming');
   const [addEventOpen, setAddEventOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [manageMembersOpen, setManageMembersOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
@@ -98,6 +102,7 @@ export function TroupeDetailPage() {
                 onInvite={() => setInviteOpen(true)}
                 onEdit={() => setEditOpen(true)}
                 onDelete={() => { setDeleteError(''); setDeleteConfirmOpen(true); }}
+                onManageMembers={() => setManageMembersOpen(true)}
               />
             </div>
           )}
@@ -260,6 +265,18 @@ export function TroupeDetailPage() {
           onClose={() => setInviteOpen(false)}
           troupeId={troupeId!}
           troupeName={detail.name}
+        />
+      )}
+
+      {manageMembersOpen && detail?.currentUserRole === 'owner' && dbUser && (
+        <ManageMembersModal
+          troupeId={troupeId!}
+          currentUserId={dbUser.id}
+          onClose={() => setManageMembersOpen(false)}
+          onOwnershipTransferred={() => {
+            setManageMembersOpen(false);
+            if (troupeId) fetchTroupeDetail(troupeId);
+          }}
         />
       )}
 

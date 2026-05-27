@@ -10,6 +10,12 @@ export const BRAND_COLORS = [
   'bg-cyan-500',
 ];
 
+export function hashColor(id: string): string {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  return BRAND_COLORS[hash % BRAND_COLORS.length];
+}
+
 export const ROLE_STYLES: Record<TroupeRole, string> = {
   owner: 'bg-violet-100 text-violet-700',
   organizer: 'bg-blue-100 text-blue-700',

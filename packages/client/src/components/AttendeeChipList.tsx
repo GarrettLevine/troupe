@@ -1,13 +1,5 @@
 import { AttendeeChip } from '../hooks/useEvents';
-import { BRAND_COLORS, ChipColorScheme, CHIP_COLOR_LABEL } from '../lib/constants';
-
-function hashColor(id: string): string {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) % BRAND_COLORS.length;
-  }
-  return BRAND_COLORS[hash];
-}
+import { hashColor, ChipColorScheme, CHIP_COLOR_LABEL } from '../lib/constants';
 
 interface AttendeeChipListProps {
   label: string;
