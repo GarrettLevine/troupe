@@ -27,6 +27,7 @@ A PWA for performing arts groups to manage membership, scheduling, and shows.
 - No `any` types — use `unknown` and narrow, or define a proper interface
 - Prefer `async/await` over promise chains
 - No unused imports or variables — treat them as errors
+- prioritize keeping constants and utility functions in a folders which generalize use, avoid duplicating code.
 
 ### Security
 - `firebase_uid` is always sourced from the verified server-side token (req.user) 
@@ -175,6 +176,17 @@ A PWA for performing arts groups to manage membership, scheduling, and shows.
 - Initials are always derived server-side via getInitials() helper
 - noResponse is derived server-side: troupe members with no attendance row
 - AttendeeChipList renders nothing when the attendees array is empty
+
+### Member management
+- Only owners can manage members — enforced server-side on every route
+- Role changes are optimistic with rollback on error
+- Ownership transfer is atomic — single transaction updating both rows
+- The one_owner_per_troupe partial unique index enforces single ownership at the database level
+- An owner cannot change their own role or remove themselves
+- Ownership transfer uses a dedicated route (not PATCH role) because it affects two rows atomically and has distinct validation
+- After ownership transfer, the previous owner's UI must update currentUserRole to reflect they are now an organizer
+- Two-step confirmation is required for ownership transfer
+- Single-step confirmation (AlertDialog) is required for member removal
 
 ### Phase boundaries
 - Phase 1 (complete): auth + home page

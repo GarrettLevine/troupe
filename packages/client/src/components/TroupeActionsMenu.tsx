@@ -6,9 +6,10 @@ interface Props {
   onInvite: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onManageMembers: () => void;
 }
 
-export function TroupeActionsMenu({ role, onInvite, onEdit, onDelete }: Props) {
+export function TroupeActionsMenu({ role, onInvite, onEdit, onDelete, onManageMembers }: Props) {
   const [open, setOpen] = useState(false);
 
   const close = () => setOpen(false);
@@ -44,6 +45,12 @@ export function TroupeActionsMenu({ role, onInvite, onEdit, onDelete }: Props) {
           )}
           {role === 'owner' && (
             <>
+              <button
+                onClick={() => handle(onManageMembers)}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Manage Members
+              </button>
               <button
                 onClick={() => handle(onEdit)}
                 className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
