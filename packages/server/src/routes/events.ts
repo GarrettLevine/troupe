@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/requireAuth';
+import { requireTroupeMember } from '../middleware/requireTroupeMember';
 import { query } from '../db';
-import { EventType, EventStatus, TroupeEvent, TroupeRole, AttendanceStatus } from '../types/troupe';
+import { EventType, EventStatus, TroupeEvent, AttendanceStatus } from '../types/troupe';
 import { formatDuration, deriveCallTime } from '../lib/formatDuration';
 import { fetchAttendance, EventAttendanceData, EMPTY_ATTENDANCE, VALID_ATTENDANCE_STATUSES } from '../lib/attendance';
 
@@ -20,21 +21,6 @@ function decodeCursor(cursor: string): { eventAt: string; id: string } {
   }
 }
 
-async function getMembership(
-  troupeId: string,
-  userId: string,
-): Promise<{ exists: boolean; role: TroupeRole | null }> {
-  interface TroupeRow { id: string }
-  const troupeRows = await query<TroupeRow>('SELECT id FROM troupes WHERE id = $1 AND deleted_at IS NULL', [troupeId]);
-  if (troupeRows.length === 0) return { exists: false, role: null };
-
-  interface MemberRow { role: TroupeRole }
-  const memberRows = await query<MemberRow>(
-    'SELECT role FROM troupe_members WHERE troupe_id = $1 AND user_id = $2',
-    [troupeId, userId],
-  );
-  return { exists: true, role: memberRows[0]?.role ?? null };
-}
 
 interface EventRow {
   id: string;
@@ -76,20 +62,10 @@ const EVENT_SELECT = `
   COALESCE(u.display_name, 'Unknown') AS created_by
 `;
 
-router.get('/:troupeId/events', async (req, res) => {
+router.get('/:troupeId/events', requireTroupeMember(), async (req, res) => {
   try {
     const { troupeId } = req.params;
     const userId = req.user!.id;
-
-    const { exists, role } = await getMembership(troupeId, userId);
-    if (!exists) {
-      res.status(404).json({ error: { message: 'Troupe not found' } });
-      return;
-    }
-    if (!role) {
-      res.status(403).json({ error: { message: 'You are not a member of this troupe' } });
-      return;
-    }
 
     const type = req.query.type === 'past' ? 'past' : 'upcoming';
     const limitParam = parseInt(req.query.limit as string, 10);
@@ -173,24 +149,10 @@ router.get('/:troupeId/events', async (req, res) => {
   }
 });
 
-router.post('/:troupeId/events', async (req, res) => {
+router.post('/:troupeId/events', requireTroupeMember('organizer'), async (req, res) => {
   try {
     const { troupeId } = req.params;
     const userId = req.user!.id;
-
-    const { exists, role } = await getMembership(troupeId, userId);
-    if (!exists) {
-      res.status(404).json({ error: { message: 'Troupe not found' } });
-      return;
-    }
-    if (!role) {
-      res.status(403).json({ error: { message: 'You are not a member of this troupe' } });
-      return;
-    }
-    if (role === 'member') {
-      res.status(403).json({ error: { message: 'Only owners and organizers can create events' } });
-      return;
-    }
 
     const { name, eventType, eventAt, callTimeOffset, durationMinutes, location, details } = req.body as {
       name?: unknown;
@@ -283,24 +245,10 @@ router.post('/:troupeId/events', async (req, res) => {
   }
 });
 
-router.patch('/:troupeId/events/:eventId', async (req, res) => {
+router.patch('/:troupeId/events/:eventId', requireTroupeMember('organizer'), async (req, res) => {
   try {
     const { troupeId, eventId } = req.params;
     const userId = req.user!.id;
-
-    const { exists, role } = await getMembership(troupeId, userId);
-    if (!exists) {
-      res.status(404).json({ error: { message: 'Troupe not found' } });
-      return;
-    }
-    if (!role) {
-      res.status(403).json({ error: { message: 'You are not a member of this troupe' } });
-      return;
-    }
-    if (role === 'member') {
-      res.status(403).json({ error: { message: 'Only owners and organizers can edit events' } });
-      return;
-    }
 
     interface EventCheck { id: string }
     const existing = await query<EventCheck>(
@@ -447,24 +395,9 @@ router.patch('/:troupeId/events/:eventId', async (req, res) => {
   }
 });
 
-router.delete('/:troupeId/events/:eventId', async (req, res) => {
+router.delete('/:troupeId/events/:eventId', requireTroupeMember('owner'), async (req, res) => {
   try {
     const { troupeId, eventId } = req.params;
-    const userId = req.user!.id;
-
-    const { exists, role } = await getMembership(troupeId, userId);
-    if (!exists) {
-      res.status(404).json({ error: { message: 'Troupe not found' } });
-      return;
-    }
-    if (!role) {
-      res.status(403).json({ error: { message: 'You are not a member of this troupe' } });
-      return;
-    }
-    if (role !== 'owner') {
-      res.status(403).json({ error: { message: 'Only the owner can delete events' } });
-      return;
-    }
 
     interface DeletedRow { id: string }
     const rows = await query<DeletedRow>(
@@ -486,20 +419,10 @@ router.delete('/:troupeId/events/:eventId', async (req, res) => {
   }
 });
 
-router.put('/:troupeId/events/:eventId/attendance', async (req, res) => {
+router.put('/:troupeId/events/:eventId/attendance', requireTroupeMember(), async (req, res) => {
   try {
     const { troupeId, eventId } = req.params;
     const userId = req.user!.id;
-
-    const { exists, role } = await getMembership(troupeId, userId);
-    if (!exists) {
-      res.status(404).json({ error: { message: 'Troupe not found' } });
-      return;
-    }
-    if (!role) {
-      res.status(403).json({ error: { message: 'You are not a member of this troupe' } });
-      return;
-    }
 
     const { status } = req.body as { status?: unknown };
     if (status !== null && status !== undefined && !VALID_ATTENDANCE_STATUSES.includes(status as AttendanceStatus)) {

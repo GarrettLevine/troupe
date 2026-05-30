@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import sharp from 'sharp';
 import { requireAuth } from '../middleware/requireAuth';
+import { requireTroupeMember } from '../middleware/requireTroupeMember';
 import { query, withTransaction } from '../db';
 import { LIMITS } from '../config/limits';
 import { TroupeRole, TroupeSummary, TroupeBadges } from '../types/troupe';
@@ -241,10 +242,9 @@ router.get('/:troupeId', async (req, res) => {
   }
 });
 
-router.patch('/:troupeId', async (req, res) => {
+router.patch('/:troupeId', requireTroupeMember('owner'), async (req, res) => {
   try {
     const { troupeId } = req.params;
-    const userId = req.user!.id;
     const { name } = req.body as { name?: unknown };
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -264,7 +264,6 @@ router.patch('/:troupeId', async (req, res) => {
       created_at: Date;
       updated_at: Date;
       has_badge: boolean;
-      role: TroupeRole;
       member_count: string;
     }
 
@@ -275,13 +274,11 @@ router.patch('/:troupeId', async (req, res) => {
        )
        SELECT
          u.id, u.name, u.created_at, u.updated_at, u.has_badge,
-         tm.role,
          COUNT(all_members.id) AS member_count
        FROM updated u
-       JOIN troupe_members tm ON tm.troupe_id = u.id AND tm.user_id = $3
        JOIN troupe_members all_members ON all_members.troupe_id = u.id
-       GROUP BY u.id, u.name, u.created_at, u.updated_at, u.has_badge, tm.role`,
-      [trimmedName, troupeId, userId],
+       GROUP BY u.id, u.name, u.created_at, u.updated_at, u.has_badge`,
+      [trimmedName, troupeId],
     );
 
     if (rows.length === 0) {
@@ -291,15 +288,10 @@ router.patch('/:troupeId', async (req, res) => {
 
     const row = rows[0];
 
-    if (row.role !== 'owner') {
-      res.status(403).json({ error: { message: 'Only the owner can edit this troupe' } });
-      return;
-    }
-
     const response: TroupeSummary = {
       id: row.id,
       name: row.name,
-      role: row.role,
+      role: req.troupeMember!.role,
       memberCount: parseInt(row.member_count, 10),
       createdAt: row.created_at.toISOString(),
       updatedAt: row.updated_at.toISOString(),
@@ -314,23 +306,9 @@ router.patch('/:troupeId', async (req, res) => {
   }
 });
 
-router.delete('/:troupeId', async (req, res) => {
+router.delete('/:troupeId', requireTroupeMember('owner'), async (req, res) => {
   try {
-    const userId = req.user!.id;
     const { troupeId } = req.params;
-    interface MemberRow { role: string }
-    const memberRows = await query<MemberRow>(
-      'SELECT role FROM troupe_members WHERE troupe_id = $1 AND user_id = $2',
-      [troupeId, userId],
-    );
-    if (memberRows.length === 0) {
-      res.status(404).json({ error: { message: 'Troupe not found' } });
-      return;
-    }
-    if (memberRows[0].role !== 'owner') {
-      res.status(403).json({ error: { message: 'Only the owner can delete a troupe' } });
-      return;
-    }
     await query('UPDATE troupes SET deleted_at = NOW() WHERE id = $1', [troupeId]);
     res.status(204).send();
   } catch (err) {
@@ -339,7 +317,7 @@ router.delete('/:troupeId', async (req, res) => {
   }
 });
 
-router.post('/:troupeId/badge', async (req, res) => {
+router.post('/:troupeId/badge', requireTroupeMember('owner'), async (req, res) => {
   try {
     try {
       await runUpload(req, res);
@@ -356,25 +334,9 @@ router.post('/:troupeId/badge', async (req, res) => {
     }
 
     const { troupeId } = req.params;
-    const userId = req.user!.id;
 
     if (!req.file) {
       res.status(400).json({ error: { message: 'No file provided' } });
-      return;
-    }
-
-    interface MemberRow { role: TroupeRole }
-    const members = await query<MemberRow>(
-      `SELECT role FROM troupe_members WHERE troupe_id = $1 AND user_id = $2`,
-      [troupeId, userId],
-    );
-
-    if (members.length === 0) {
-      res.status(404).json({ error: { message: 'Troupe not found' } });
-      return;
-    }
-    if (members[0].role !== 'owner') {
-      res.status(403).json({ error: { message: 'Only the owner can upload a badge' } });
       return;
     }
 
