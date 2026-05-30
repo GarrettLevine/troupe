@@ -8,7 +8,7 @@ A progressive web app for performing arts groups (theatre companies, improv trou
 |-------|--------|
 | Frontend | React + TypeScript, Vite, PWA |
 | Backend | Node.js + Express + TypeScript |
-| Database | PostgreSQL (raw SQL, `pg` driver — no ORM) |
+| Database | PostgreSQL via [Neon](https://neon.tech) (raw SQL, `pg` driver — no ORM) |
 | Auth | Firebase Authentication (phone/SMS OTP) |
 | Styling | Tailwind CSS (shadcn/ui ready) |
 | Monorepo | pnpm workspaces |
@@ -19,7 +19,7 @@ A progressive web app for performing arts groups (theatre companies, improv trou
 
 - **Node.js** 18+
 - **pnpm** 8+ (`npm install -g pnpm`)
-- **PostgreSQL** 14+
+- A **Neon** account with a database provisioned (or a local PostgreSQL 14+ instance for dev)
 - A **Firebase project** with Phone authentication enabled
 
 ---
@@ -39,16 +39,16 @@ pnpm install
 cp packages/server/.env.example packages/server/.env
 ```
 
-**Database** — use individual variables for local dev, or `DATABASE_URL` for hosted environments (Railway, Heroku, etc.). `DATABASE_URL` takes precedence if both are set.
+**Database** — use `DATABASE_URL` for Neon (and any hosted environment). Individual `DB_*` vars are supported as a fallback for local dev. `DATABASE_URL` takes precedence if both are set.
 
 | Variable | Description |
 |----------|-------------|
-| `DB_HOST` | Database host (default: `localhost`) |
-| `DB_PORT` | Database port (default: `5432`) |
-| `DB_NAME` | Database name (e.g. `troupe`) |
-| `DB_USER` | Database user |
-| `DB_PASSWORD` | Database password |
-| `DATABASE_URL` | Full connection string — overrides the individual `DB_*` vars if set |
+| `DATABASE_URL` | Full connection string — e.g. the connection string from the Neon console (`postgresql://user:pass@host/dbname?sslmode=require`) |
+| `DB_HOST` | Fallback: database host (default: `localhost`) |
+| `DB_PORT` | Fallback: database port (default: `5432`) |
+| `DB_NAME` | Fallback: database name |
+| `DB_USER` | Fallback: database user |
+| `DB_PASSWORD` | Fallback: database password |
 
 **Firebase & server:**
 
@@ -73,14 +73,13 @@ cp packages/client/.env.example packages/client/.env
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender ID |
 | `VITE_FIREBASE_APP_ID` | Firebase app ID |
 
-### 3. Create the database and run migrations
+### 3. Run migrations
 
 ```bash
-createdb troupe
 pnpm migrate
 ```
 
-This applies all pending migrations from `packages/server/db/migrations/` using node-pg-migrate.
+This applies all pending migrations from `packages/server/db/migrations/` using node-pg-migrate. For local dev, create the database first (`createdb troupe`). For Neon, the database already exists — just run the migrations against it via `DATABASE_URL`.
 
 ### 4. Firebase setup
 
@@ -222,19 +221,17 @@ Then update the `icons` array in `packages/client/vite.config.ts` to reference t
 
 ## Deployment
 
-The app deploys to **Google Cloud Run** via GitHub Actions on every push to `main`. The workflow runs migrations first — if they fail, the deploy is skipped.
+The app deploys to **Google Cloud Run** via GitHub Actions on every push to `main`. The database is hosted on **Neon** — no Cloud SQL or Auth Proxy needed. The workflow runs migrations first — if they fail, the deploy is skipped.
 
 ### One-time GCP setup
 
 1. **Enable APIs** in the GCP Console:
    - Cloud Run API
-   - Cloud SQL Admin API
    - Cloud Build API
    - Secret Manager API
 
 2. **Create a service account** (e.g. `troupe-deployer`) with these roles:
    - Cloud Run Admin
-   - Cloud SQL Client
    - Secret Manager Secret Accessor
    - Service Account User
 
@@ -250,8 +247,7 @@ Add these repository secrets under **Settings → Secrets and variables → Acti
 |--------|-----------------|
 | `GCP_SA_KEY` | The full JSON content of the downloaded service account key |
 | `GCP_PROJECT_ID` | GCP Console → project selector (e.g. `troupe-prod-123`) |
-| `DATABASE_URL` | Cloud SQL connection string via Auth Proxy Unix socket, e.g. `postgresql://user:pass@/troupe?host=/tmp/cloudsql/project:region:instance` |
-| `CLOUD_SQL_INSTANCE_CONNECTION_NAME` | Cloud SQL Console → instance details → Connection name (e.g. `project:us-central1:troupe-db`) |
+| `DATABASE_URL` | Neon console → your database → Connection string (e.g. `postgresql://user:pass@host/dbname?sslmode=require`) |
 
 ### How the pipeline works
 
@@ -261,8 +257,7 @@ push to main
     ▼
 [migrate job]
   - Installs server deps
-  - Starts Cloud SQL Auth Proxy (secure tunnel to Cloud SQL)
-  - Runs pnpm migrate (applies pending SQL migrations)
+  - Runs pnpm migrate against Neon via DATABASE_URL
     │
     ├── FAIL → pipeline stops, deploy is skipped
     │
@@ -276,7 +271,7 @@ A failed migration **always blocks the deploy**. This prevents the window where 
 To manually roll back a migration after a bad deploy:
 
 ```bash
-# Locally, pointing at the production database via the Cloud SQL Auth Proxy
+# Set DATABASE_URL to the Neon connection string, then:
 pnpm migrate:down
 ```
 
