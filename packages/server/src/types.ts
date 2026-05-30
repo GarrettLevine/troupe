@@ -1,3 +1,5 @@
+import { TroupeRole } from './types/troupe';
+
 export interface DbUser {
   id: string;
   display_name: string | null;
@@ -11,6 +13,7 @@ declare global {
     interface Request {
       user?: DbUser;
       firebaseUid?: string;
+      troupeMember?: { role: TroupeRole; troupeId: string };
     }
   }
 }

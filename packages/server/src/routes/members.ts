@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/requireAuth';
+import { requireTroupeMember } from '../middleware/requireTroupeMember';
 import { query, withTransaction } from '../db';
 import { TroupeRole, ManagedMember, MemberListResponse, TransferOwnershipResponse } from '../types/troupe';
 import { getInitials } from '../lib/initials';
@@ -14,14 +15,6 @@ interface MemberRow {
   joined_at: Date;
 }
 
-async function requireOwner(troupeId: string, userId: string): Promise<boolean> {
-  const rows = await query<{ role: TroupeRole }>(
-    'SELECT role FROM troupe_members WHERE troupe_id = $1 AND user_id = $2',
-    [troupeId, userId],
-  );
-  return rows.length > 0 && rows[0].role === 'owner';
-}
-
 function rowToManagedMember(row: MemberRow): ManagedMember {
   return {
     userId: row.user_id,
@@ -32,15 +25,9 @@ function rowToManagedMember(row: MemberRow): ManagedMember {
   };
 }
 
-router.get('/:troupeId/members', async (req, res) => {
+router.get('/:troupeId/members', requireTroupeMember('owner'), async (req, res) => {
   try {
     const { troupeId } = req.params;
-    const userId = req.user!.id;
-
-    if (!(await requireOwner(troupeId, userId))) {
-      res.status(403).json({ error: { message: 'Only the owner can manage members' } });
-      return;
-    }
 
     const rows = await query<MemberRow>(
       `SELECT tm.user_id, COALESCE(u.display_name, 'Unknown') AS display_name, tm.role, tm.joined_at
@@ -65,15 +52,10 @@ router.get('/:troupeId/members', async (req, res) => {
   }
 });
 
-router.patch('/:troupeId/members/:targetUserId/role', async (req, res) => {
+router.patch('/:troupeId/members/:targetUserId/role', requireTroupeMember('owner'), async (req, res) => {
   try {
     const { troupeId, targetUserId } = req.params;
     const userId = req.user!.id;
-
-    if (!(await requireOwner(troupeId, userId))) {
-      res.status(403).json({ error: { message: 'Only the owner can manage members' } });
-      return;
-    }
 
     const { role } = req.body as { role: unknown };
     if (role !== 'organizer' && role !== 'member') {
@@ -118,15 +100,10 @@ router.patch('/:troupeId/members/:targetUserId/role', async (req, res) => {
   }
 });
 
-router.post('/:troupeId/members/:targetUserId/transfer-ownership', async (req, res) => {
+router.post('/:troupeId/members/:targetUserId/transfer-ownership', requireTroupeMember('owner'), async (req, res) => {
   try {
     const { troupeId, targetUserId } = req.params;
     const userId = req.user!.id;
-
-    if (!(await requireOwner(troupeId, userId))) {
-      res.status(403).json({ error: { message: 'Only the owner can transfer ownership' } });
-      return;
-    }
 
     if (targetUserId === userId) {
       res.status(400).json({ error: { message: 'You cannot transfer ownership to yourself' } });
@@ -190,15 +167,10 @@ router.post('/:troupeId/members/:targetUserId/transfer-ownership', async (req, r
   }
 });
 
-router.delete('/:troupeId/members/:targetUserId', async (req, res) => {
+router.delete('/:troupeId/members/:targetUserId', requireTroupeMember('owner'), async (req, res) => {
   try {
     const { troupeId, targetUserId } = req.params;
     const userId = req.user!.id;
-
-    if (!(await requireOwner(troupeId, userId))) {
-      res.status(403).json({ error: { message: 'Only the owner can remove members' } });
-      return;
-    }
 
     if (targetUserId === userId) {
       res.status(400).json({ error: { message: 'You cannot remove yourself from the troupe' } });

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/requireAuth';
+import { requireTroupeMember } from '../middleware/requireTroupeMember';
 import { query, pool } from '../db';
 import { generateInviteCode } from '../lib/inviteCode';
 import { LIMITS } from '../config/limits';
@@ -8,37 +9,11 @@ import { InviteResponse, InvitePreview } from '../types/troupe';
 const router = Router();
 
 // POST /api/troupes/:troupeId/invites — generate or return an existing active invite
-router.post('/:troupeId/invites', requireAuth, async (req, res) => {
+router.post('/:troupeId/invites', requireAuth, requireTroupeMember('organizer'), async (req, res) => {
   try {
     const userId = req.user!.id;
     const { troupeId } = req.params;
     const force = req.query.force === 'true';
-
-    // Verify troupe exists
-    interface TroupeRow { id: string }
-    const troupeRows = await query<TroupeRow>(
-      'SELECT id FROM troupes WHERE id = $1 AND deleted_at IS NULL',
-      [troupeId],
-    );
-    if (troupeRows.length === 0) {
-      res.status(404).json({ error: { message: 'Troupe not found' } });
-      return;
-    }
-
-    // Verify user is a member and get their role
-    interface MemberRow { role: string }
-    const memberRows = await query<MemberRow>(
-      'SELECT role FROM troupe_members WHERE troupe_id = $1 AND user_id = $2',
-      [troupeId, userId],
-    );
-    if (memberRows.length === 0) {
-      res.status(403).json({ error: { message: 'You are not a member of this troupe' } });
-      return;
-    }
-    if (memberRows[0].role === 'member') {
-      res.status(403).json({ error: { message: 'Only owners and organizers can generate invite links' } });
-      return;
-    }
 
     const appUrl = process.env.APP_URL ?? 'http://localhost:5173';
 
